@@ -88,4 +88,55 @@ public class AttractionCalculatorTests
 
         Assert.Equal(expected, AttractionCalculator.Chemistry(a, b));
     }
+
+    private static readonly Zodiac[] AllZodiacs = Enum.GetValues<Zodiac>();
+
+    [Fact]
+    public void Zodiac_diagonal_is_always_zero()
+    {
+        foreach (var z in AllZodiacs)
+            Assert.Equal(0, ZodiacCompatibilityTable.Get(z, z));
+    }
+
+    [Fact]
+    public void Zodiac_table_is_symmetric()
+    {
+        foreach (var a in AllZodiacs)
+            foreach (var b in AllZodiacs)
+                Assert.Equal(ZodiacCompatibilityTable.Get(a, b), ZodiacCompatibilityTable.Get(b, a));
+    }
+
+    [Fact]
+    public void Zodiac_values_stay_within_bounds()
+    {
+        int max = AttractionWeights.ZodiacCompatibilityMax;
+
+        foreach (var a in AllZodiacs)
+            foreach (var b in AllZodiacs)
+            {
+                int v = ZodiacCompatibilityTable.Get(a, b);
+                Assert.InRange(v, -max, max);
+            }
+    }
+
+    [Theory]
+    // Trígono (mesmo elemento, distância 4): máximo positivo.
+    [InlineData(Zodiac.Aries, Zodiac.Leo, 30)]
+    [InlineData(Zodiac.Aries, Zodiac.Sagittarius, 30)]
+    [InlineData(Zodiac.Taurus, Zodiac.Virgo, 30)]
+    // Oposição (distância 6): atração complementar.
+    [InlineData(Zodiac.Aries, Zodiac.Libra, 20)]
+    [InlineData(Zodiac.Taurus, Zodiac.Scorpio, 20)]
+    // Sextil (distância 2): harmonioso.
+    [InlineData(Zodiac.Aries, Zodiac.Gemini, 15)]
+    // Quadratura (distância 3): tensão.
+    [InlineData(Zodiac.Aries, Zodiac.Cancer, -15)]
+    // Semisextil (distância 1): desajeitado.
+    [InlineData(Zodiac.Aries, Zodiac.Taurus, -10)]
+    // Quincúncio (distância 5): desajeitado.
+    [InlineData(Zodiac.Aries, Zodiac.Virgo, -10)]
+    public void Zodiac_aspect_values_match_expected(Zodiac a, Zodiac b, int expected)
+    {
+        Assert.Equal(expected, ZodiacCompatibilityTable.Get(a, b));
+    }
 }

@@ -103,21 +103,24 @@ public sealed class InteractionResolver
             rel.Flags.Remove(RelationshipFlag.Enemy);
         }
 
-        // Crush e amor (apenas em contexto romântico).
-        if (def.IsRomantic)
-        {
-            if (rel.EffectiveDaily >= RelationshipThresholds.Crush)
-                rel.Flags.Add(RelationshipFlag.Crush);
+        // Crush: só se FORMA em contexto romântico, mas é removido sempre que
+        // o daily cai abaixo do limiar (não fica grudado).
+        if (def.IsRomantic && rel.EffectiveDaily >= RelationshipThresholds.Crush)
+            rel.Flags.Add(RelationshipFlag.Crush);
+        else if (rel.EffectiveDaily < RelationshipThresholds.Crush)
+            rel.Flags.Remove(RelationshipFlag.Crush);
 
-            if (rel.EffectiveLifetime >= RelationshipThresholds.Love)
-            {
-                if (rel.Flags.Add(RelationshipFlag.Love))
-                    FellInLove?.Invoke(rel);
-            }
-            else if (rel.Flags.Remove(RelationshipFlag.Love))
-            {
-                HeartBroken?.Invoke(rel);
-            }
+        // Amor: só se FORMA em contexto romântico (FellInLove), mas a quebra
+        // (HeartBroken) vale para qualquer interação que derrube o lifetime.
+        if (def.IsRomantic && rel.EffectiveLifetime >= RelationshipThresholds.Love)
+        {
+            if (rel.Flags.Add(RelationshipFlag.Love))
+                FellInLove?.Invoke(rel);
+        }
+        else if (rel.EffectiveLifetime < RelationshipThresholds.Love
+                 && rel.Flags.Remove(RelationshipFlag.Love))
+        {
+            HeartBroken?.Invoke(rel);
         }
     }
 }
