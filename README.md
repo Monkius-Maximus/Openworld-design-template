@@ -35,8 +35,42 @@ RelationshipSystem.sln
 │   ├── RelationshipDecaySystem.cs       # DailyTick / NormalizationTick
 │   └── Interactions/InteractionLibrary.cs
 ├── tests/RelationshipSystem.Tests/      # xUnit
-└── samples/RelationshipSystem.Demo/     # console de exemplo (Parte 7 da spec)
+├── samples/RelationshipSystem.Demo/     # console de exemplo (Parte 7 da spec)
+│
+├── src/EconomySystem.Core/              # módulo de economia (ver docs/economia-design.md)
+│   ├── MoneyTransaction.cs              # lançamento nomeado (~ RelationshipModifier)
+│   ├── HouseholdFunds.cs                # caixa do domicílio (~ RelationshipValue)
+│   ├── OwnedObject.cs / HouseholdInventory.cs  # bens + depreciação (~ Matrix)
+│   ├── Household.cs                     # caixa + inventário + moradores + patrimônio
+│   ├── BillsSystem.cs                   # contas, desconto por filho, repo-man
+│   ├── IncomeActivityDefinition.cs / IncomeResolver.cs  # renda freelance (~ Interaction)
+│   ├── EconomyTickSystem.cs             # tick diário (~ RelationshipDecaySystem)
+│   ├── EconomyThresholds.cs             # thresholds/physics/business rules
+│   ├── Economy/IncomeActivityLibrary.cs # catálogo (pintura, colheita, artesanato)
+│   ├── Businesses/                      # Open for Business: estoque, venda, fidelidade
+│   ├── CareerDefinition.cs / CareerState.cs / CareerResolver.cs  # carreiras (v2)
+│   ├── Careers/CareerLibrary.cs         # carreiras: tradicional, remoto, gig (v2)
+│   ├── Subscription.cs                  # assinatura digital recorrente (v2)
+│   ├── Digital/DigitalIncomeLibrary.cs  # bico por app, marketplace (v2)
+│   ├── Integration/PaidInteractionResolver.cs   # presentes pagos (v2)
+│   └── Integration/RelationshipEconomyBridge.cs # cliente = relacionamento; gate de amigos
+└── tests/EconomySystem.Tests/           # xUnit
 ```
+
+## Módulo de Economia
+
+Camada econômica inspirada em The Sims 2 ("simplicidade amplificada": moeda única,
+sem inflação, loop **ganhar → guardar → gastar → o tempo passa**). É um projeto
+irmão com dependência **unidirecional** `EconomySystem.Core → RelationshipSystem.Core`,
+reusando os mesmos padrões (modificadores nomeados, store por dicionário,
+definições declarativas + resolver, tick de tempo, thresholds centralizados).
+A integração principal: **clientes do negócio são relacionamentos** — a disposição
+de compra deriva do `EffectiveDaily` e uma boa venda devolve um modificador ao
+relacionamento. A v2 adiciona **carreiras com promoções gated por amigos** (via
+`AreFriends`/`CountFriends`), salários no tick, e uma **camada moderna** (pistas
+remoto/gig, assinaturas digitais, renda por app/marketplace, presentes pagos) —
+indo além do Ocidente dos anos 2000 que o TS2 retrata. Spec completa em
+[`docs/economia-design.md`](docs/economia-design.md).
 
 ## Decisões de implementação
 
