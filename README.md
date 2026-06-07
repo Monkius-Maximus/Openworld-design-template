@@ -59,7 +59,8 @@ RelationshipSystem.sln
 │   ├── Aspiration/AspirationRewardCatalog.cs  # recompensas (inclui Árvore do Dinheiro) (v3)
 │   ├── Integration/PaidInteractionResolver.cs   # presentes pagos (v2)
 │   └── Integration/RelationshipEconomyBridge.cs # cliente = relacionamento; gate de amigos
-└── tests/EconomySystem.Tests/           # xUnit
+├── tests/EconomySystem.Tests/           # xUnit
+└── samples/EconomySystem.Demo/          # console: loop econômico v1–v3 ponta-a-ponta
 ```
 
 ## Módulo de Economia
@@ -103,6 +104,7 @@ dotnet restore
 dotnet build
 dotnet test
 dotnet run --project samples/RelationshipSystem.Demo
+dotnet run --project samples/EconomySystem.Demo   # loop econômico v1–v3 ponta-a-ponta
 ```
 
 Requer o SDK do .NET 8.
