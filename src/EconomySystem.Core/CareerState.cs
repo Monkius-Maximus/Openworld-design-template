@@ -65,4 +65,11 @@ public sealed class CareerState
                 $"{CharacterId} já está no topo de '{Career.Id}'.");
         CurrentLevel++;
     }
+
+    /// <summary>Desce um nível (não passa do nível 1). Usado por chance cards (v3).</summary>
+    public void Demote()
+    {
+        if (CurrentLevel > 1)
+            CurrentLevel--;
+    }
 }

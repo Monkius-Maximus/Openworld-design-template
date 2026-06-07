@@ -28,7 +28,9 @@ public sealed class BusinessResolver
         if (quantity <= 0)
             throw new ArgumentOutOfRangeException(nameof(quantity), quantity, "quantity must be > 0");
 
-        int cost = unitCost * quantity;
+        // Perk de ranking (v3): desconto de atacado na reposição.
+        int gross = unitCost * quantity;
+        int cost = gross * (100 - business.RestockDiscountPercent) / 100;
         var tx = new MoneyTransaction
         {
             Reason = $"Reposição de estoque: {itemId}",
@@ -82,5 +84,30 @@ public sealed class BusinessResolver
 
         Sold?.Invoke(business.OwnerId, customerId, profit);
         return profit;
+    }
+
+    /// <summary>
+    /// Paga a folha do negócio (soma dos salários diários dos funcionários),
+    /// debitando o caixa do dono. Chamado pelo <c>EconomyTickSystem</c> (v3).
+    /// Retorna o total pago, ou 0 se não houver funcionários ou faltar saldo.
+    /// </summary>
+    public int PayEmployees(string householdId, HouseholdFunds funds, Business business)
+    {
+        if (string.IsNullOrWhiteSpace(householdId))
+            throw new ArgumentException("householdId required", nameof(householdId));
+        ArgumentNullException.ThrowIfNull(funds);
+        ArgumentNullException.ThrowIfNull(business);
+
+        int total = business.Employees.Sum(e => e.DailyWage);
+        if (total <= 0)
+            return 0;
+
+        var tx = new MoneyTransaction
+        {
+            Reason = $"Folha de pagamento: {business.Id}",
+            Amount = -total,
+            Kind = TransactionKind.EmployeeWage,
+        };
+        return funds.TryWithdraw(tx) ? total : 0;
     }
 }

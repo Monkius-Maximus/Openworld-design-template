@@ -1,3 +1,5 @@
+using EconomySystem.Core.Businesses;
+
 namespace EconomySystem.Core;
 
 /// <summary>
@@ -9,11 +11,13 @@ public sealed class EconomyTickSystem
 {
     private readonly BillsSystem _bills;
     private readonly CareerResolver _careers;
+    private readonly BusinessResolver _business;
 
-    public EconomyTickSystem(BillsSystem bills, CareerResolver? careers = null)
+    public EconomyTickSystem(BillsSystem bills, CareerResolver? careers = null, BusinessResolver? business = null)
     {
         _bills = bills ?? throw new ArgumentNullException(nameof(bills));
         _careers = careers ?? new CareerResolver();
+        _business = business ?? new BusinessResolver();
     }
 
     /// <summary>
@@ -45,7 +49,9 @@ public sealed class EconomyTickSystem
             if (sub.AdvanceDay())
                 household.Funds.TryWithdraw(sub.ToDebit());
 
-        // TODO (v3): folha de pagamento dos funcionários do negócio.
+        // 6. Folha de pagamento dos negócios (v3, Open for Business).
+        foreach (var biz in household.Businesses)
+            _business.PayEmployees(household.Id, household.Funds, biz);
     }
 
     /// <summary>Conveniência: roda o DailyTick para vários domicílios.</summary>

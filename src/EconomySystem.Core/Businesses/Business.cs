@@ -55,6 +55,13 @@ public sealed class Business
     /// <summary>Ranking atual do negócio (estrelas de fidelidade).</summary>
     public int Rank => Loyalty.Stars;
 
+    /// <summary>Perks desbloqueados pelo ranking atual (v3).</summary>
+    public IReadOnlyList<BusinessPerk> UnlockedPerks => BusinessPerks.ForRank(Rank);
+
+    /// <summary>Desconto de atacado na reposição, % (perk WholesaleDiscount).</summary>
+    public int RestockDiscountPercent =>
+        UnlockedPerks.Contains(BusinessPerk.WholesaleDiscount) ? BusinessPerks.WholesaleDiscountPercent : 0;
+
     /// <summary>Preço de venda de um item = custo × (1 + markup).</summary>
     public int SalePriceOf(StockItem item)
     {

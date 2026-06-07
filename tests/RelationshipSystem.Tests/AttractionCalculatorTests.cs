@@ -55,13 +55,14 @@ public class AttractionCalculatorTests
     public void Attraction_is_asymmetric()
     {
         var a = Make("a", turnOns: new[] { "Blond", "Tall" }, tags: new[] { "Shy" });
-        var b = Make("b", turnOns: new[] { "Shy", "Funny" }, tags: new[] { "Blond" });
+        var b = Make("b", turnOns: new[] { "Shy", "Funny" }, tags: new[] { "Blond", "Tall" });
 
-        int aToB = AttractionCalculator.Calculate(a, b); // b é Blond -> +20
-        int bToA = AttractionCalculator.Calculate(b, a); // a é Shy -> +20 (mas signos/asp iguais)
+        int aToB = AttractionCalculator.Calculate(a, b); // b é Blond E Tall -> +40
+        int bToA = AttractionCalculator.Calculate(b, a); // a é só Shy -> +20
 
-        // As direções não precisam coincidir; ao menos uma combinação difere.
-        Assert.True(aToB != bToA || a.Tags.Count != b.Tags.Count);
+        // As direções diferem: os turn-ons de A casam mais com as tags de B do
+        // que o contrário (zodíaco/aspiração/personalidade são simétricos).
+        Assert.True(aToB != bToA);
     }
 
     [Fact]

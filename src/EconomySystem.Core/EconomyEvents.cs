@@ -11,3 +11,9 @@ public delegate void SaleEventHandler(string ownerId, string customerId, int pro
 
 /// <summary>Promoção: o personagem alcançou um novo nível de carreira.</summary>
 public delegate void PromotionEventHandler(string characterId, CareerLevel newLevel);
+
+/// <summary>Chance card resolvido: o desfecho escolhido pelo personagem.</summary>
+public delegate void ChanceCardHandler(string characterId, ChanceCardOutcome outcome);
+
+/// <summary>Recompensa de aspiração resgatada por um personagem.</summary>
+public delegate void AspirationRedeemedHandler(string characterId, AspirationReward reward);
