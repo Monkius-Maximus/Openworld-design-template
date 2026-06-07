@@ -62,6 +62,13 @@ public static class InteractionLibrary
                 Name = "Recebeu um presente",
                 Value = 10f,
                 RemainingHours = 48f
+            },
+            ResultingSentiment: new Sentiment
+            {
+                Type = SentimentType.Adoring,
+                Intensity = 1f,
+                IsLongTerm = false,
+                RemainingHours = 48f
             }
         ),
         OnReject = new InteractionEffect(DailyDelta: 0f, LifetimeDelta: 0f),
@@ -82,6 +89,13 @@ public static class InteractionLibrary
                 Name = Relationship.FuryModifierName,
                 Value = -20f,
                 RemainingHours = RelationshipPhysics.FuryDurationHours
+            },
+            ResultingSentiment: new Sentiment
+            {
+                Type = SentimentType.Resentful,
+                Intensity = 1f,
+                IsLongTerm = false,
+                RemainingHours = 48f
             }
         ),
         OnReject = new InteractionEffect(DailyDelta: 0f, LifetimeDelta: 0f),

@@ -262,4 +262,114 @@ public class InteractionResolverTests
         resolver.Perform("alice", "bob", InteractionLibrary.Insult); // -15 -> 62
         Assert.DoesNotContain(RelationshipFlag.Crush, rel.Flags);
     }
+
+    // --- Tópicos de conversa (interesses) ---
+
+    private static CharacterTraits Character(string id, int sportsLevel) => new()
+    {
+        Id = id,
+        Name = id,
+        Zodiac = Zodiac.Leo,
+        Aspiration = Aspiration.Knowledge,
+        Personality = new Personality(5, 5, 5, 5, 5),
+        TurnOns = new[] { "A", "B" },
+        TurnOff = "Lazy",
+        Tags = Array.Empty<string>(),
+        Interests = new Dictionary<string, int> { [InterestTopics.Sports] = sportsLevel },
+    };
+
+    [Fact]
+    public void Shared_topic_boosts_daily_gain_of_a_conversation()
+    {
+        var matrix = new RelationshipMatrix();
+        var registry = new CharacterRegistry();
+        registry.Add(Character("alice", 10));
+        registry.Add(Character("bob", 10));
+        var resolver = new InteractionResolver(matrix, registry);
+
+        resolver.Perform("alice", "bob", InteractionLibrary.Talk, InterestTopics.Sports);
+
+        // Talk dá +3; tópico mútuo a 10 soma +5 * 0.6 = +3 -> 6.
+        Assert.Equal(6f, matrix.Get("alice", "bob").Value.Daily, 3);
+    }
+
+    [Fact]
+    public void Boring_topic_dampens_a_conversation()
+    {
+        var matrix = new RelationshipMatrix();
+        var registry = new CharacterRegistry();
+        registry.Add(Character("alice", 0));
+        registry.Add(Character("bob", 0));
+        var resolver = new InteractionResolver(matrix, registry);
+
+        resolver.Perform("alice", "bob", InteractionLibrary.Talk, InterestTopics.Sports);
+
+        // Talk +3; tópico que entedia ambos: -5 * 0.6 = -3 -> 0.
+        Assert.Equal(0f, matrix.Get("alice", "bob").Value.Daily, 3);
+    }
+
+    [Fact]
+    public void Topic_is_ignored_without_a_character_registry()
+    {
+        var matrix = new RelationshipMatrix();
+        var resolver = new InteractionResolver(matrix); // sem registro
+
+        resolver.Perform("alice", "bob", InteractionLibrary.Talk, InterestTopics.Sports);
+
+        Assert.Equal(3f, matrix.Get("alice", "bob").Value.Daily);
+    }
+
+    // --- Sentimentos emergem dos marcos ---
+
+    [Fact]
+    public void Forming_friendship_creates_a_close_sentiment()
+    {
+        var matrix = new RelationshipMatrix();
+        var resolver = new InteractionResolver(matrix);
+        matrix.Get("bob", "alice").Value.ApplyDaily(60f);
+        matrix.Get("alice", "bob").Value.ApplyDaily(48f);
+
+        resolver.Perform("alice", "bob", InteractionLibrary.Talk); // cruza 50
+
+        Assert.Contains(matrix.Get("alice", "bob").Sentiments, s => s.Type == SentimentType.Close);
+    }
+
+    [Fact]
+    public void Falling_in_love_creates_an_enamored_sentiment()
+    {
+        var matrix = new RelationshipMatrix();
+        var resolver = new InteractionResolver(matrix);
+        matrix.Get("alice", "bob").Value.ApplyLifetime(68f);
+        matrix.Get("alice", "bob").Value.ApplyDaily(62f);
+
+        resolver.Perform("alice", "bob", InteractionLibrary.Flirt);
+
+        Assert.Contains(matrix.Get("alice", "bob").Sentiments, s => s.Type == SentimentType.Enamored);
+    }
+
+    [Fact]
+    public void Becoming_enemies_creates_a_bitter_sentiment()
+    {
+        var matrix = new RelationshipMatrix();
+        var resolver = new InteractionResolver(matrix);
+        matrix.Get("alice", "bob").Value.ApplyDaily(-40f);
+
+        resolver.Perform("alice", "bob", InteractionLibrary.Insult); // cruza -50
+
+        Assert.Contains(matrix.Get("alice", "bob").Sentiments, s => s.Type == SentimentType.Bitter);
+    }
+
+    [Fact]
+    public void Authored_sentiment_on_effect_is_applied_and_cloned()
+    {
+        var matrix = new RelationshipMatrix();
+        var resolver = new InteractionResolver(matrix);
+
+        resolver.Perform("alice", "bob", InteractionLibrary.GiveGift);
+
+        var rel = matrix.Get("alice", "bob");
+        var adoring = Assert.Single(rel.Sentiments, s => s.Type == SentimentType.Adoring);
+        // Clonado do template: a instância no relacionamento não é a da definição.
+        Assert.NotSame(InteractionLibrary.GiveGift.OnAccept.ResultingSentiment, adoring);
+    }
 }

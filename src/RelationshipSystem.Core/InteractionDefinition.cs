@@ -6,7 +6,8 @@ namespace RelationshipSystem.Core;
 public sealed record InteractionEffect(
     float DailyDelta,
     float LifetimeDelta,
-    RelationshipModifier? ResultingModifier = null // opcional
+    RelationshipModifier? ResultingModifier = null, // opcional
+    Sentiment? ResultingSentiment = null            // opcional (estilo TS4)
 );
 
 /// <summary>

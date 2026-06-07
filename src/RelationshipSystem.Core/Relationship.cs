@@ -43,6 +43,15 @@ public sealed class Relationship
     /// <summary>Modificadores nomeados (turnos, presentes, ofensas, etc).</summary>
     public List<RelationshipModifier> Modifiers { get; } = new();
 
+    private readonly List<Sentiment> _sentiments = new();
+
+    /// <summary>
+    /// Sentimentos persistentes de A por B (estilo The Sims 4). Camada narrativa
+    /// separada do score: não entram no <see cref="EffectiveDaily"/>.
+    /// Limitado a <see cref="SentimentDefaults.MaxSentiments"/>; o mais fraco sai.
+    /// </summary>
+    public IReadOnlyList<Sentiment> Sentiments => _sentiments;
+
     /// <summary>Score efetivo = Value + soma dos modificadores (ignora expirados).</summary>
     public float EffectiveDaily => Value.Daily + ModifierSum();
 
@@ -66,5 +75,40 @@ public sealed class Relationship
     {
         ArgumentNullException.ThrowIfNull(mod);
         Modifiers.Add(mod);
+    }
+
+    /// <summary>
+    /// Adiciona um sentimento. Se já existe um do mesmo <see cref="SentimentType"/>,
+    /// ele é reforçado (intensidade acumula até o teto; o prazo é estendido) em vez
+    /// de duplicar. Ao exceder o limite, o sentimento mais fraco é descartado.
+    /// </summary>
+    public void AddSentiment(Sentiment sentiment)
+    {
+        ArgumentNullException.ThrowIfNull(sentiment);
+
+        var existing = _sentiments.FirstOrDefault(s => s.Type == sentiment.Type);
+        if (existing is not null)
+        {
+            existing.Intensity = Math.Min(
+                existing.Intensity + sentiment.Intensity, SentimentDefaults.MaxIntensity);
+            existing.RemainingHours = Math.Max(existing.RemainingHours, sentiment.RemainingHours);
+            return;
+        }
+
+        _sentiments.Add(sentiment);
+
+        // Mantém apenas os mais fortes (estilo TS4: o 5º expulsa o mais fraco).
+        while (_sentiments.Count > SentimentDefaults.MaxSentiments)
+        {
+            var weakest = _sentiments
+                .Aggregate((a, b) => b.Intensity < a.Intensity ? b : a);
+            _sentiments.Remove(weakest);
+        }
+    }
+
+    /// <summary>Envelhece sentimentos de curto prazo; remove os expirados.</summary>
+    public void DecaySentiments(float hoursPassed)
+    {
+        _sentiments.RemoveAll(s => s.DecayTime(hoursPassed));
     }
 }

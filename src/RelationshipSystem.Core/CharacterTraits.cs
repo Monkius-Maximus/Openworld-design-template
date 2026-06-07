@@ -43,6 +43,8 @@ public sealed class CharacterTraits
     private readonly IReadOnlyList<string> _turnOns = Array.Empty<string>();
     private readonly string _turnOff = string.Empty;
     private readonly IReadOnlyList<string> _tags = Array.Empty<string>();
+    private readonly IReadOnlyDictionary<string, int> _interests =
+        new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
     public required string Id
     {
@@ -98,6 +100,32 @@ public sealed class CharacterTraits
             if (value.Any(string.IsNullOrWhiteSpace))
                 throw new ArgumentException("Tags cannot be blank", nameof(Tags));
             _tags = value.ToArray();
+        }
+    }
+
+    /// <summary>
+    /// Níveis de interesse por tópico de conversa (0..10), estilo The Sims 2.
+    /// Opcional: ausência de um tópico equivale a interesse 0. As chaves são
+    /// comparadas sem distinção de maiúsculas/minúsculas.
+    /// </summary>
+    public IReadOnlyDictionary<string, int> Interests
+    {
+        get => _interests;
+        init
+        {
+            if (value is null)
+                throw new ArgumentException("Interests cannot be null", nameof(Interests));
+
+            var copy = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var (topic, level) in value)
+            {
+                if (string.IsNullOrWhiteSpace(topic))
+                    throw new ArgumentException("Interest topic cannot be blank", nameof(Interests));
+                if (level is < 0 or > 10)
+                    throw new ArgumentOutOfRangeException(nameof(Interests), level, "Interest level must be 0..10");
+                copy[topic] = level;
+            }
+            _interests = copy;
         }
     }
 }

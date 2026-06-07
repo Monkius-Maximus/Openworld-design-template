@@ -1,8 +1,9 @@
 # Openworld-design-template
 
 Sistema de relacionamento em **C# / .NET 8**, inspirado em *The Sims 2*
-(eixos Daily/Lifetime), *Crusader Kings 3* (modificadores nomeados e
-temporários) e em sistemas de atração assimétrica.
+(eixos Daily/Lifetime, atração/chemistry, interesses de conversa),
+*The Sims 4* (sentimentos persistentes), *Crusader Kings 3* (modificadores
+nomeados e temporários) e em sistemas de atração assimétrica.
 
 ## Conceito
 
@@ -22,14 +23,17 @@ A amizade quebra assim que o daily mútuo cai abaixo de 50.
 ```
 RelationshipSystem.sln
 ├── src/RelationshipSystem.Core/         # biblioteca principal
-│   ├── CharacterTraits.cs               # Zodiac, Aspiration, Personality, TurnOns/Off, Tags
+│   ├── CharacterTraits.cs               # Zodiac, Aspiration, Personality, TurnOns/Off, Tags, Interests
 │   ├── RelationshipValue.cs             # Daily/Lifetime + clamp, normalize, decay
 │   ├── RelationshipModifier.cs          # modificador nomeado e temporário
-│   ├── Relationship.cs                  # A→B: flags, modifiers, score efetivo
+│   ├── Sentiment.cs                     # sentimento persistente direcional (TS4)
+│   ├── Relationship.cs                  # A→B: flags, modifiers, sentiments, score efetivo
 │   ├── InteractionDefinition.cs         # Availability, Accepted, Effects
 │   ├── RelationshipMatrix.cs            # dicionário (From,To) → Relationship + getters
-│   ├── RelationshipThresholds.cs        # thresholds, physics e pesos de atração
+│   ├── CharacterRegistry.cs             # id → CharacterTraits (para interesses)
+│   ├── RelationshipThresholds.cs        # thresholds, physics, pesos de atração/interesses/sentimentos
 │   ├── AttractionCalculator.cs          # atração assimétrica (TS2)
+│   ├── InterestCalculator.cs            # bônus de conversa por interesse mútuo (TS2)
 │   ├── ZodiacCompatibilityTable.cs      # compatibilidade por elementos
 │   ├── InteractionResolver.cs           # executa interações, emite eventos
 │   ├── RelationshipDecaySystem.cs       # DailyTick / NormalizationTick
@@ -54,6 +58,31 @@ RelationshipSystem.sln
 - A integração com Godot (Parte 8 da spec) foi omitida do build para manter o
   núcleo livre de dependências; o `RelationshipManager` pode ser adicionado num
   projeto Godot reutilizando `RelationshipSystem.Core` sem alterações.
+
+## Sentimentos (The Sims 4)
+
+Cada relacionamento mantém uma camada **narrativa** separada do score: até
+`SentimentDefaults.MaxSentiments` (4) sentimentos persistentes e direcionais
+(`Close`, `Adoring`, `Enamored`, `Motivated`, `Bitter`, `Hurt`, `Guilty`,
+`Resentful`). Ao exceder o limite, o mais fraco é descartado; reaplicar o mesmo
+tipo **reforça** (intensidade acumula até o teto, prazo é estendido) em vez de
+duplicar. Sentimentos de **longo prazo** não decaem; os de **curto prazo**
+envelhecem no `DailyTick`.
+
+Eles **não entram no score efetivo** (são feeling, não pontuação). Surgem
+automaticamente dos marcos já emitidos pelo resolver (amizade → `Close`, amor →
+`Enamored`, inimizade → `Bitter`, coração partido → `Hurt`) e também podem ser
+autorados por interação via `InteractionEffect.ResultingSentiment` (ex.: presente
+→ `Adoring`, insulto → `Resentful`).
+
+## Interesses / Tópicos de conversa (The Sims 2)
+
+`CharacterTraits.Interests` mapeia tópicos (strings livres; veja
+`InterestTopics`) para um nível `0..10`. Ao executar uma conversa com tópico —
+`resolver.Perform(from, to, def, topic)` — o ganho de Daily é modulado pelo
+interesse **mútuo**: conversar sobre algo que ambos amam acelera (até +3), sobre
+algo que entedia os dois esfria (até -3). Requer um `CharacterRegistry` no
+resolver; sem ele, o tópico é ignorado e o comportamento é idêntico ao anterior.
 
 ## Build & testes
 
