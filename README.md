@@ -1,10 +1,10 @@
 # Openworld-design-template
 
 Sistema de relacionamento em **C# / .NET 8**, inspirado em *The Sims 2*
-(eixos Daily/Lifetime, atração/chemistry, interesses de conversa),
-*The Sims 4* (trilhas separadas de amizade/romance, sentimentos persistentes),
-*Crusader Kings 3* (modificadores nomeados e temporários) e em sistemas de
-atração assimétrica.
+(eixos Daily/Lifetime, atração/chemistry, interesses de conversa, wants &
+fears), *The Sims 4* (trilhas separadas de amizade/romance, sentimentos
+persistentes), *Crusader Kings 3* (modificadores nomeados e temporários) e em
+sistemas de atração assimétrica.
 
 ## Conceito
 
@@ -54,6 +54,10 @@ RelationshipSystem.sln
 │   ├── ZodiacCompatibilityTable.cs      # compatibilidade por elementos
 │   ├── InteractionResolver.cs           # executa interações, emite eventos
 │   ├── RelationshipDecaySystem.cs       # DailyTick / NormalizationTick
+│   ├── Desire.cs                        # Want/Fear declarativo (TS2)
+│   ├── AspirationMeter.cs               # barra de aspiração [-100,100]
+│   ├── WantsAndFearsSystem.cs           # avalia desejos, move aspiração, emite eventos
+│   ├── RelationshipDesires.cs           # fábrica de wants & fears comuns
 │   └── Interactions/InteractionLibrary.cs
 ├── tests/RelationshipSystem.Tests/      # xUnit
 └── samples/RelationshipSystem.Demo/     # console de exemplo (Parte 7 da spec)
@@ -100,6 +104,22 @@ autorados por interação via `InteractionEffect.ResultingSentiment` (ex.: prese
 interesse **mútuo**: conversar sobre algo que ambos amam acelera (até +3), sobre
 algo que entedia os dois esfria (até -3). Requer um `CharacterRegistry` no
 resolver; sem ele, o tópico é ignorado e o comportamento é idêntico ao anterior.
+
+## Wants & Fears (The Sims 2)
+
+Cada personagem tem uma **barra de aspiração** (`AspirationMeter`, `[-100,100]`)
+e um conjunto de **desejos** dinâmicos (`Desire`): cumprir um *Want* enche a
+aspiração; realizar um *Fear* a drena. Cada desejo é direcional (sobre um alvo) e
+sua condição é um predicado sobre a matriz — o que permite medos como "amar sem
+ser correspondido" (`RelationshipDesires.UnrequitedLoveFear`), que olha as duas
+direções.
+
+O `WantsAndFearsSystem` guarda as barras e os desejos por personagem, reavalia
+com `Evaluate(matrix, ownerId)` (desejos realizados são *one-shot*: ajustam a
+aspiração, emitem `WantFulfilled`/`FearRealized` e somem) e pode se auto-ligar a
+um resolver com `AttachTo(resolver, matrix)` — reavaliando os dois envolvidos
+após cada interação. `RelationshipDesires` traz atalhos comuns (ficar amigo,
+apaixonar-se, virar inimigo, amor não-correspondido).
 
 ## Build & testes
 

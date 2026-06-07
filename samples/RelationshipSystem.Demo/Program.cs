@@ -58,6 +58,15 @@ resolver.FriendshipFormed += rel => Console.WriteLine($"✓ Amizade: {rel.FromId
 resolver.FellInLove += rel => Console.WriteLine($"❤ Amor: {rel.FromId} → {rel.ToId}");
 resolver.BecameEnemies += rel => Console.WriteLine($"\U0001F494 Inimigos: {rel.FromId} → {rel.ToId}");
 
+// Wants & Fears (The Sims 2): Alice sonha em ser amiga de Bob e teme virar
+// inimiga dele. O sistema reavalia os desejos após cada interação.
+var wf = new WantsAndFearsSystem();
+wf.AttachTo(resolver, matrix);
+wf.WantFulfilled += (owner, d) => Console.WriteLine($"⭐ {owner} realizou um desejo: {d.Description}");
+wf.FearRealized += (owner, d) => Console.WriteLine($"\U0001F631 {owner} sofreu um medo: {d.Description}");
+wf.Add("alice", RelationshipDesires.BefriendWant("bob"));
+wf.Add("alice", RelationshipDesires.EnemyFear("bob"));
+
 Console.WriteLine($"Atração Alice→Bob: {matrix.Get("alice", "bob").AttractionScore}");
 Console.WriteLine($"Atração Bob→Alice: {matrix.Get("bob", "alice").AttractionScore}");
 Console.WriteLine($"Chemistry: {AttractionCalculator.Chemistry(alice, bob)}");
@@ -69,6 +78,12 @@ resolver.Perform("alice", "bob", InteractionLibrary.Talk, InterestTopics.Sports)
 resolver.Perform("alice", "bob", InteractionLibrary.Talk, InterestTopics.Culture);
 resolver.Perform("bob", "alice", InteractionLibrary.Compliment);
 resolver.Perform("alice", "bob", InteractionLibrary.GiveGift); // gera sentimento "Adoring"
+
+// Bob também passa a gostar de Alice; uma última conversa cruza o limiar mútuo
+// de amizade (>=50) — realizando o Want "ficar amigo de Bob".
+matrix.Get("bob", "alice").Value.ApplyDaily(60f);
+matrix.Get("alice", "bob").Value.ApplyDaily(40f);
+resolver.Perform("alice", "bob", InteractionLibrary.Talk);
 
 // Romance é uma trilha SEPARADA da amizade: flertar alimenta o romance.
 // (a forte atração de Alice por Bob faz o flerte ser aceito.)
@@ -90,3 +105,6 @@ Console.WriteLine($"Alice → Bob (romance): daily={ab.Romance.Daily}, lifetime=
 Console.WriteLine($"Sentimentos de Alice por Bob ({ab.Sentiments.Count}/{SentimentDefaults.MaxSentiments}):");
 foreach (var s in ab.Sentiments)
     Console.WriteLine($"  - {s.Type} ({s.Polarity}), intensidade {s.Intensity}, {(s.IsLongTerm ? "permanente" : $"{s.RemainingHours}h")}");
+
+// Aspiração de Alice (movida pelos Wants & Fears realizados).
+Console.WriteLine($"Aspiração de Alice: {wf.MeterFor("alice").Score} (desejos restantes: {wf.DesiresOf("alice").Count})");
