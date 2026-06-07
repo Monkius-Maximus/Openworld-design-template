@@ -52,6 +52,11 @@ RelationshipSystem.sln
 │   ├── Careers/CareerLibrary.cs         # carreiras: tradicional, remoto, gig (v2)
 │   ├── Subscription.cs                  # assinatura digital recorrente (v2)
 │   ├── Digital/DigitalIncomeLibrary.cs  # bico por app, marketplace (v2)
+│   ├── ChanceCard.cs                    # evento de trabalho com 2 opções (v3)
+│   ├── Careers/ChanceCardLibrary.cs     # catálogo de chance cards (v3)
+│   ├── Businesses/BusinessPerk.cs       # perks de ranking + desconto de atacado (v3)
+│   ├── AspirationWallet.cs / AspirationReward.cs / AspirationResolver.cs  # moeda soft (v3)
+│   ├── Aspiration/AspirationRewardCatalog.cs  # recompensas (inclui Árvore do Dinheiro) (v3)
 │   ├── Integration/PaidInteractionResolver.cs   # presentes pagos (v2)
 │   └── Integration/RelationshipEconomyBridge.cs # cliente = relacionamento; gate de amigos
 └── tests/EconomySystem.Tests/           # xUnit
@@ -69,8 +74,10 @@ de compra deriva do `EffectiveDaily` e uma boa venda devolve um modificador ao
 relacionamento. A v2 adiciona **carreiras com promoções gated por amigos** (via
 `AreFriends`/`CountFriends`), salários no tick, e uma **camada moderna** (pistas
 remoto/gig, assinaturas digitais, renda por app/marketplace, presentes pagos) —
-indo além do Ocidente dos anos 2000 que o TS2 retrata. Spec completa em
-[`docs/economia-design.md`](docs/economia-design.md).
+indo além do Ocidente dos anos 2000 que o TS2 retrata. A v3 aprofunda o negócio
+próprio (**perks de ranking** + folha de pagamento no tick), traz **chance cards**
+de duas opções e a **moeda "soft" de aspiração** (com objetos de recompensa).
+Spec completa em [`docs/economia-design.md`](docs/economia-design.md).
 
 ## Decisões de implementação
 

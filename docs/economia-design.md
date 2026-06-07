@@ -53,11 +53,25 @@ de modelar inflação.
 |------|----------|--------|
 | **v1** | Caixa + contas + bens com depreciação; renda freelance; negócio próprio (OFB); tick diário; integração cliente↔relacionamento | Implementada |
 | **v2** | Carreiras + promoções (habilidades + **amigos**, via `AreFriends`) + humor; camada digital (assinaturas, gig, marketplace); presentes pagos | Implementada |
-| **v3** | Perks de ranking do negócio; folha de pagamento dos funcionários no tick; chance cards; moeda "soft" (pontos de aspiração + objetos de recompensa) | Documentada |
+| **v3** | Perks de ranking do negócio; folha de pagamento dos funcionários no tick; chance cards; moeda "soft" (pontos de aspiração + objetos de recompensa) | Implementada |
 
-> **Nota sobre chance cards**: foram movidas da v2 para a v3 para manter a v2
-> enxuta; o gancho de evento aleatório de trabalho é simples de acrescentar sobre
-> o `CareerResolver` (um par de desfechos que ajustam caixa/desempenho).
+### Mapa da v3 (aprofundamento + moeda soft)
+
+- **Perks de ranking** (`Businesses/BusinessPerk.cs`): conforme as estrelas de
+  fidelidade sobem, o negócio desbloqueia perks (`BusinessPerks.ForRank`). O perk
+  `WholesaleDiscount` (rank ≥ 2) dá desconto real na reposição, aplicado em
+  `BusinessResolver.Restock`.
+- **Folha de pagamento**: `BusinessResolver.PayEmployees` debita a soma dos
+  salários; o `EconomyTickSystem` a paga a cada dia para os negócios do domicílio.
+- **Chance cards** (`ChanceCard` + `Careers/ChanceCardLibrary.cs`): evento de
+  trabalho com DUAS opções (visão moderna sobre o TS2, que tinha desfecho fixo);
+  `CareerResolver.ResolveChanceCard` aplica caixa + efeito de carreira
+  (promover/rebaixar) e emite evento.
+- **Moeda "soft"** (`AspirationWallet` + `AspirationReward` +
+  `Aspiration/AspirationRewardCatalog.cs`): pontos de aspiração, totalmente
+  separados dos Simoleons (como a atração é um eixo à parte). `AspirationResolver`
+  resgata objetos de recompensa — incluindo a "Árvore do Dinheiro", que liga a
+  moeda soft de volta ao caixa.
 
 ### Mapa da v2 (carreiras + modernização)
 

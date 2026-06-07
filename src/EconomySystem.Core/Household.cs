@@ -1,3 +1,5 @@
+using EconomySystem.Core.Businesses;
+
 namespace EconomySystem.Core;
 
 /// <summary>
@@ -32,6 +34,9 @@ public sealed class Household
 
     /// <summary>Assinaturas digitais recorrentes do domicílio (v2).</summary>
     public List<Subscription> Subscriptions { get; } = new();
+
+    /// <summary>Negócios próprios operados pelo domicílio (v3, Open for Business).</summary>
+    public List<Business> Businesses { get; } = new();
 
     /// <summary>Número de crianças — desconta 10% por filho na conta (TS2).</summary>
     public int ChildCount { get; set; }
