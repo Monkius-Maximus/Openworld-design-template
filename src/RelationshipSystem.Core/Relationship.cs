@@ -31,8 +31,22 @@ public sealed class Relationship
             : value;
     }
 
-    /// <summary>Valores: daily e lifetime.</summary>
+    /// <summary>
+    /// Trilha PLATÔNICA (amizade): daily e lifetime. Governa Friend, BestFriend
+    /// e Enemy. Mantém o nome <c>Value</c> por compatibilidade.
+    /// </summary>
     public RelationshipValue Value { get; } = new();
+
+    /// <summary>Alias legível de <see cref="Value"/> (a trilha de amizade).</summary>
+    public RelationshipValue Friendship => Value;
+
+    /// <summary>
+    /// Trilha ROMÂNTICA: daily e lifetime independentes da amizade (estilo
+    /// The Sims 4, onde amizade e romance são barras separadas). Governa Crush
+    /// (romance daily) e Love (romance lifetime). É possível ter amizade alta
+    /// sem romance, ou romance sem amizade.
+    /// </summary>
+    public RelationshipValue Romance { get; } = new();
 
     /// <summary>Score de atração (separado, eixo diferente).</summary>
     public int AttractionScore { get; set; } = 0;
@@ -52,10 +66,18 @@ public sealed class Relationship
     /// </summary>
     public IReadOnlyList<Sentiment> Sentiments => _sentiments;
 
-    /// <summary>Score efetivo = Value + soma dos modificadores (ignora expirados).</summary>
+    /// <summary>Score platônico efetivo = Value + soma dos modificadores (ignora expirados).</summary>
     public float EffectiveDaily => Value.Daily + ModifierSum();
 
     public float EffectiveLifetime => Value.Lifetime + ModifierSum();
+
+    /// <summary>
+    /// Score romântico efetivo. Os modificadores/sentimentos vivem na trilha
+    /// platônica; a trilha romântica usa seus valores diretos.
+    /// </summary>
+    public float EffectiveRomanceDaily => Romance.Daily;
+
+    public float EffectiveRomanceLifetime => Romance.Lifetime;
 
     /// <summary>True enquanto houver um modificador de fúria ativo.</summary>
     public bool IsFurious =>

@@ -52,10 +52,15 @@ public sealed class InteractionResolver
         bool accepted = def.Accepted(rel);
         var effect = accepted ? def.OnAccept : def.OnReject;
 
-        // Aplica deltas. Um tópico de conversa soma (ou subtrai) ao Daily conforme
-        // o interesse mútuo — só quando há registro de personagens disponível.
+        // Aplica deltas à trilha platônica. Um tópico de conversa soma (ou
+        // subtrai) ao Daily conforme o interesse mútuo — só quando há registro
+        // de personagens disponível.
         rel.Value.ApplyDaily(effect.DailyDelta + TopicBonus(from, to, topic));
         rel.Value.ApplyLifetime(effect.LifetimeDelta);
+
+        // Aplica deltas à trilha romântica (independente da amizade).
+        rel.Romance.ApplyDaily(effect.RomanceDailyDelta);
+        rel.Romance.ApplyLifetime(effect.RomanceLifetimeDelta);
 
         // Adiciona modificador persistente, se houver. Clona para não
         // compartilhar estado mutável (RemainingHours) entre relacionamentos.
@@ -133,16 +138,17 @@ public sealed class InteractionResolver
             rel.Flags.Remove(RelationshipFlag.Enemy);
         }
 
-        // Crush: só se FORMA em contexto romântico, mas é removido sempre que
-        // o daily cai abaixo do limiar (não fica grudado).
-        if (def.IsRomantic && rel.EffectiveDaily >= RelationshipThresholds.Crush)
+        // Crush: lê a trilha ROMÂNTICA (daily). Só se FORMA em contexto romântico,
+        // mas é removido sempre que o romance daily cai abaixo do limiar.
+        if (def.IsRomantic && rel.EffectiveRomanceDaily >= RelationshipThresholds.Crush)
             rel.Flags.Add(RelationshipFlag.Crush);
-        else if (rel.EffectiveDaily < RelationshipThresholds.Crush)
+        else if (rel.EffectiveRomanceDaily < RelationshipThresholds.Crush)
             rel.Flags.Remove(RelationshipFlag.Crush);
 
-        // Amor: só se FORMA em contexto romântico (FellInLove), mas a quebra
-        // (HeartBroken) vale para qualquer interação que derrube o lifetime.
-        if (def.IsRomantic && rel.EffectiveLifetime >= RelationshipThresholds.Love)
+        // Amor: lê a trilha ROMÂNTICA (lifetime). Só se FORMA em contexto romântico
+        // (FellInLove), mas a quebra (HeartBroken) vale para qualquer interação que
+        // derrube o romance lifetime (ex.: um insulto também fere a trilha romântica).
+        if (def.IsRomantic && rel.EffectiveRomanceLifetime >= RelationshipThresholds.Love)
         {
             if (rel.Flags.Add(RelationshipFlag.Love))
             {
@@ -150,7 +156,7 @@ public sealed class InteractionResolver
                 FellInLove?.Invoke(rel);
             }
         }
-        else if (rel.EffectiveLifetime < RelationshipThresholds.Love
+        else if (rel.EffectiveRomanceLifetime < RelationshipThresholds.Love
                  && rel.Flags.Remove(RelationshipFlag.Love))
         {
             rel.AddSentiment(LongTerm(SentimentType.Hurt));

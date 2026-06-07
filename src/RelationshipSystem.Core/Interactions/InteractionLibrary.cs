@@ -36,6 +36,8 @@ public static class InteractionLibrary
         Id = "Flirt",
         DisplayName = "Flerte",
         IsRomantic = true,
+        // Flertar exige rapport platônico prévio (e não estar furioso); a atração
+        // facilita a aceitação. O PAYOFF, porém, vai para a trilha ROMÂNTICA.
         Available = rel => rel.EffectiveDaily >= 20 && !rel.IsFurious,
         Accepted = rel =>
         {
@@ -43,8 +45,12 @@ public static class InteractionLibrary
             float threshold = 30f - (rel.AttractionScore / 10f);
             return rel.EffectiveDaily / 2f + rel.AttractionScore / 10f > threshold;
         },
-        OnAccept = new InteractionEffect(DailyDelta: 8f, LifetimeDelta: 3f),
-        OnReject = new InteractionEffect(DailyDelta: -5f, LifetimeDelta: 0f),
+        OnAccept = new InteractionEffect(
+            DailyDelta: 0f, LifetimeDelta: 0f,
+            RomanceDailyDelta: 8f, RomanceLifetimeDelta: 3f),
+        OnReject = new InteractionEffect(
+            DailyDelta: 0f, LifetimeDelta: 0f,
+            RomanceDailyDelta: -5f),
     };
 
     public static readonly InteractionDefinition GiveGift = new()
@@ -84,6 +90,8 @@ public static class InteractionLibrary
         OnAccept = new InteractionEffect(
             DailyDelta: -15f,
             LifetimeDelta: -5f,
+            RomanceDailyDelta: -10f,   // insultar também fere o romance
+            RomanceLifetimeDelta: -5f,
             ResultingModifier: new RelationshipModifier
             {
                 Name = Relationship.FuryModifierName,

@@ -2,21 +2,38 @@
 
 Sistema de relacionamento em **C# / .NET 8**, inspirado em *The Sims 2*
 (eixos Daily/Lifetime, atração/chemistry, interesses de conversa),
-*The Sims 4* (sentimentos persistentes), *Crusader Kings 3* (modificadores
-nomeados e temporários) e em sistemas de atração assimétrica.
+*The Sims 4* (trilhas separadas de amizade/romance, sentimentos persistentes),
+*Crusader Kings 3* (modificadores nomeados e temporários) e em sistemas de
+atração assimétrica.
 
 ## Conceito
 
 Cada relacionamento é **direcional**: `A → B` é independente de `B → A`,
-o que permite paixão não-correspondida e mágoa unilateral. Cada direção
-carrega dois eixos, ambos limitados a `[-100, +100]`:
+o que permite paixão não-correspondida e mágoa unilateral.
 
-| Eixo         | Prazo      | Decaimento                                   | Rege                              |
-|--------------|------------|----------------------------------------------|-----------------------------------|
-| **Daily**    | Curto, volátil | Decai **2 pts/dia** rumo a zero (sem contato) | Amizade (≥50 mútuo), inimizade (≤-50) |
-| **Lifetime** | Longo, estável | Não decai por tempo; **normaliza +3** rumo ao daily (3×/dia) | Melhor amizade (≥50 mútuo), amor (≥70) |
+Cada direção tem **duas trilhas independentes** (estilo The Sims 4, onde
+amizade e romance são barras separadas) — `Value`/`Friendship` e `Romance`.
+Dá para ter amizade alta sem romance, ou romance sem amizade. Cada trilha
+carrega dois eixos de tempo, todos limitados a `[-100, +100]`:
 
-A amizade quebra assim que o daily mútuo cai abaixo de 50.
+| Eixo         | Prazo      | Decaimento                                   |
+|--------------|------------|----------------------------------------------|
+| **Daily**    | Curto, volátil | Decai **2 pts/dia** rumo a zero (sem contato) |
+| **Lifetime** | Longo, estável | Não decai por tempo; **normaliza +3** rumo ao daily (3×/dia) |
+
+Os flags leem trilhas diferentes:
+
+| Flag           | Trilha    | Regra                              |
+|----------------|-----------|------------------------------------|
+| **Friend**     | Amizade   | daily mútuo ≥ 50                   |
+| **BestFriend** | Amizade   | lifetime mútuo ≥ 50               |
+| **Enemy**      | Amizade   | daily ≤ -50                       |
+| **Crush**      | Romance   | romance daily ≥ 70 (forma só em contexto romântico) |
+| **Love**       | Romance   | romance lifetime ≥ 70 (forma só em contexto romântico) |
+
+A amizade quebra assim que o daily mútuo cai abaixo de 50; o amor quebra
+quando o romance lifetime cai abaixo de 70 (inclusive por interações não
+românticas, como um insulto, que também ferem o romance).
 
 ## Estrutura
 
@@ -24,10 +41,10 @@ A amizade quebra assim que o daily mútuo cai abaixo de 50.
 RelationshipSystem.sln
 ├── src/RelationshipSystem.Core/         # biblioteca principal
 │   ├── CharacterTraits.cs               # Zodiac, Aspiration, Personality, TurnOns/Off, Tags, Interests
-│   ├── RelationshipValue.cs             # Daily/Lifetime + clamp, normalize, decay
+│   ├── RelationshipValue.cs             # Daily/Lifetime (uma trilha) + clamp, normalize, decay
 │   ├── RelationshipModifier.cs          # modificador nomeado e temporário
 │   ├── Sentiment.cs                     # sentimento persistente direcional (TS4)
-│   ├── Relationship.cs                  # A→B: flags, modifiers, sentiments, score efetivo
+│   ├── Relationship.cs                  # A→B: trilhas amizade+romance, flags, modifiers, sentiments
 │   ├── InteractionDefinition.cs         # Availability, Accepted, Effects
 │   ├── RelationshipMatrix.cs            # dicionário (From,To) → Relationship + getters
 │   ├── CharacterRegistry.cs             # id → CharacterTraits (para interesses)

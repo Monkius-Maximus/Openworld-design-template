@@ -70,6 +70,11 @@ resolver.Perform("alice", "bob", InteractionLibrary.Talk, InterestTopics.Culture
 resolver.Perform("bob", "alice", InteractionLibrary.Compliment);
 resolver.Perform("alice", "bob", InteractionLibrary.GiveGift); // gera sentimento "Adoring"
 
+// Romance é uma trilha SEPARADA da amizade: flertar alimenta o romance.
+// (a forte atração de Alice por Bob faz o flerte ser aceito.)
+resolver.Perform("alice", "bob", InteractionLibrary.Flirt);
+resolver.Perform("alice", "bob", InteractionLibrary.Flirt);
+
 // Um dia passa.
 decay.DailyTick(matrix);
 
@@ -78,7 +83,8 @@ for (int i = 0; i < RelationshipPhysics.NormalizationTicksPerDay; i++)
     decay.NormalizationTick(matrix);
 
 var ab = matrix.Get("alice", "bob");
-Console.WriteLine($"Alice → Bob: daily={ab.Value.Daily}, lifetime={ab.Value.Lifetime}, effective={ab.EffectiveDaily}");
+Console.WriteLine($"Alice → Bob (amizade): daily={ab.Value.Daily}, lifetime={ab.Value.Lifetime}, effective={ab.EffectiveDaily}");
+Console.WriteLine($"Alice → Bob (romance): daily={ab.Romance.Daily}, lifetime={ab.Romance.Lifetime}");
 
 // Sentimentos persistentes acumulados (estilo The Sims 4).
 Console.WriteLine($"Sentimentos de Alice por Bob ({ab.Sentiments.Count}/{SentimentDefaults.MaxSentiments}):");
