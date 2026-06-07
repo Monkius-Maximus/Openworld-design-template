@@ -48,7 +48,12 @@ RelationshipSystem.sln
 │   ├── EconomyThresholds.cs             # thresholds/physics/business rules
 │   ├── Economy/IncomeActivityLibrary.cs # catálogo (pintura, colheita, artesanato)
 │   ├── Businesses/                      # Open for Business: estoque, venda, fidelidade
-│   └── Integration/RelationshipEconomyBridge.cs # cliente = relacionamento
+│   ├── CareerDefinition.cs / CareerState.cs / CareerResolver.cs  # carreiras (v2)
+│   ├── Careers/CareerLibrary.cs         # carreiras: tradicional, remoto, gig (v2)
+│   ├── Subscription.cs                  # assinatura digital recorrente (v2)
+│   ├── Digital/DigitalIncomeLibrary.cs  # bico por app, marketplace (v2)
+│   ├── Integration/PaidInteractionResolver.cs   # presentes pagos (v2)
+│   └── Integration/RelationshipEconomyBridge.cs # cliente = relacionamento; gate de amigos
 └── tests/EconomySystem.Tests/           # xUnit
 ```
 
@@ -61,9 +66,11 @@ reusando os mesmos padrões (modificadores nomeados, store por dicionário,
 definições declarativas + resolver, tick de tempo, thresholds centralizados).
 A integração principal: **clientes do negócio são relacionamentos** — a disposição
 de compra deriva do `EffectiveDaily` e uma boa venda devolve um modificador ao
-relacionamento. Carreiras/promoções (gated por amigos via `AreFriends`) e a camada
-digital moderna (assinaturas, gig, marketplace) estão desenhadas como fases
-posteriores. Spec completa em [`docs/economia-design.md`](docs/economia-design.md).
+relacionamento. A v2 adiciona **carreiras com promoções gated por amigos** (via
+`AreFriends`/`CountFriends`), salários no tick, e uma **camada moderna** (pistas
+remoto/gig, assinaturas digitais, renda por app/marketplace, presentes pagos) —
+indo além do Ocidente dos anos 2000 que o TS2 retrata. Spec completa em
+[`docs/economia-design.md`](docs/economia-design.md).
 
 ## Decisões de implementação
 

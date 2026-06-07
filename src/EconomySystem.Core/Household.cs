@@ -27,6 +27,12 @@ public sealed class Household
     /// <summary>Ids dos personagens que moram aqui (chaves do RelationshipMatrix).</summary>
     public List<string> MemberIds { get; } = new();
 
+    /// <summary>Empregos dos moradores, por id de personagem (v2).</summary>
+    public Dictionary<string, CareerState> Careers { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Assinaturas digitais recorrentes do domicílio (v2).</summary>
+    public List<Subscription> Subscriptions { get; } = new();
+
     /// <summary>Número de crianças — desconta 10% por filho na conta (TS2).</summary>
     public int ChildCount { get; set; }
 

@@ -43,6 +43,16 @@ public static class EconomyPhysics
     /// <summary>Dias da semana em que as contas chegam (TS2: terça e quinta).</summary>
     public static readonly IReadOnlyList<DayOfWeek> BillDeliveryDays =
         new[] { DayOfWeek.Tuesday, DayOfWeek.Thursday };
+
+    /// <summary>Ciclo padrão de cobrança de uma assinatura digital, em dias (v2).</summary>
+    public const int SubscriptionBillingDays = 7;
+}
+
+/// <summary>Custos sociais que tocam o caixa (v2). Espelha a divisão por preocupação.</summary>
+public static class SocialCosts
+{
+    /// <summary>Custo padrão de um presente dado numa interação social.</summary>
+    public const int GiftCost = 75;
 }
 
 /// <summary>

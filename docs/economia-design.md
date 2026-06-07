@@ -51,9 +51,31 @@ de modelar inflação.
 
 | Fase | Conteúdo | Estado |
 |------|----------|--------|
-| **v1** | Caixa + contas + bens com depreciação; renda freelance; negócio próprio (OFB); tick diário; integração cliente↔relacionamento | Esqueleto neste repo (lógica fundacional implementada) |
-| **v2** | Carreiras + promoções (habilidades + **amigos**, via `AreFriends`) + humor; camada digital (assinaturas, gig, marketplace); presentes pagos; chance cards | Documentada; ganchos prontos |
-| **v3** | Perks de ranking do negócio; folha de pagamento no tick; moeda "soft" (pontos de aspiração + objetos de recompensa) | Documentada |
+| **v1** | Caixa + contas + bens com depreciação; renda freelance; negócio próprio (OFB); tick diário; integração cliente↔relacionamento | Implementada |
+| **v2** | Carreiras + promoções (habilidades + **amigos**, via `AreFriends`) + humor; camada digital (assinaturas, gig, marketplace); presentes pagos | Implementada |
+| **v3** | Perks de ranking do negócio; folha de pagamento dos funcionários no tick; chance cards; moeda "soft" (pontos de aspiração + objetos de recompensa) | Documentada |
+
+> **Nota sobre chance cards**: foram movidas da v2 para a v3 para manter a v2
+> enxuta; o gancho de evento aleatório de trabalho é simples de acrescentar sobre
+> o `CareerResolver` (um par de desfechos que ajustam caixa/desempenho).
+
+### Mapa da v2 (carreiras + modernização)
+
+- **Carreiras**: `CareerDefinition`/`CareerLevel`/`CareerState`/`CareerResolver`
+  (raiz) + catálogo `Careers/CareerLibrary.cs`. Promoção avalia os requisitos do
+  **próximo** nível (habilidades + amigos + humor — gates do TS2). O número de
+  amigos vem do `RelationshipMatrix` via
+  `RelationshipEconomyBridge.EvaluatePromotion`/`CountFriends`.
+- **Modernização** (além do Ocidente dos anos 2000): pistas `Remote` e `Gig` ao
+  lado da `Traditional` (ex.: `RemoteSoftware`, `GigCourier`); `Subscription`
+  (micro-conta recorrente: celular/streaming) debitada pelo tick;
+  `Digital/DigitalIncomeLibrary.cs` (bico por app, marketplace) — apenas novas
+  instâncias de `IncomeActivityDefinition`, provando que o esquema generaliza.
+- **Presentes pagos**: `Integration/PaidInteractionResolver.cs` envolve o
+  `InteractionResolver` do núcleo — debita o custo e só então aplica o efeito
+  social; sem fundos, a interação é cancelada. Sem editar o núcleo.
+- **Tick estendido**: paga salários dos moradores empregados e debita assinaturas
+  vencidas, mantendo o loop fechado.
 
 ## 3. Modelo de dados e fórmulas (v1)
 

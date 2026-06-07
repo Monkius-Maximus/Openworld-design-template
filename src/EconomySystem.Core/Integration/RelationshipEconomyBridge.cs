@@ -21,8 +21,8 @@ public sealed class RelationshipEconomyBridge
 
     /// <summary>
     /// Conta quantos amigos (mútuos) um personagem tem, reusando a regra
-    /// existente <see cref="RelationshipMatrix.AreFriends"/>. Será o gatilho de
-    /// promoções gated por amigos quando carreiras entrarem (fase posterior).
+    /// existente <see cref="RelationshipMatrix.AreFriends"/>. É o gatilho do gate
+    /// de amigos das promoções (estilo The Sims 2).
     /// </summary>
     public int CountFriends(string characterId)
     {
@@ -34,6 +34,22 @@ public sealed class RelationshipEconomyBridge
             .Select(r => r.ToId)
             .Distinct()
             .Count(other => _matrix.AreFriends(characterId, other));
+    }
+
+    /// <summary>
+    /// Avalia uma promoção montando o <see cref="CareerContext"/> com a contagem
+    /// de amigos vinda do <see cref="RelationshipMatrix"/> — é aqui que o gate
+    /// social do The Sims 2 se conecta à economia. Retorna true se foi promovido.
+    /// </summary>
+    public bool EvaluatePromotion(CareerResolver resolver, CareerState state,
+        IReadOnlyDictionary<string, int> skills, int mood)
+    {
+        ArgumentNullException.ThrowIfNull(resolver);
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(skills);
+
+        var ctx = new CareerContext(skills, mood, CountFriends(state.CharacterId));
+        return resolver.TryPromote(state, ctx);
     }
 
     /// <summary>

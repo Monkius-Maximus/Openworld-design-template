@@ -8,3 +8,6 @@ public delegate void BillEventHandler(string householdId, int amountDue, bool pa
 
 /// <summary>Venda concluída num negócio: comprador, item e lucro.</summary>
 public delegate void SaleEventHandler(string ownerId, string customerId, int profit);
+
+/// <summary>Promoção: o personagem alcançou um novo nível de carreira.</summary>
+public delegate void PromotionEventHandler(string characterId, CareerLevel newLevel);
