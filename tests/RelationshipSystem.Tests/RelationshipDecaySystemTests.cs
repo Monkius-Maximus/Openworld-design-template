@@ -102,6 +102,32 @@ public class RelationshipDecaySystemTests
     }
 
     [Fact]
+    public void DailyTick_also_decays_the_romance_track()
+    {
+        var matrix = new RelationshipMatrix();
+        var decay = new RelationshipDecaySystem();
+        var rel = matrix.Get("alice", "bob");
+        rel.Romance.ApplyDaily(10f);
+
+        decay.DailyTick(matrix);
+
+        Assert.Equal(10f - RelationshipPhysics.DailyDecayPerDay, rel.Romance.Daily);
+    }
+
+    [Fact]
+    public void NormalizationTick_also_pursues_romance_lifetime()
+    {
+        var matrix = new RelationshipMatrix();
+        var decay = new RelationshipDecaySystem();
+        var rel = matrix.Get("alice", "bob");
+        rel.Romance.ApplyDaily(50f); // romance lifetime começa em 0
+
+        decay.NormalizationTick(matrix);
+
+        Assert.Equal(RelationshipPhysics.LifetimeNormalizationPerTick, rel.Romance.Lifetime);
+    }
+
+    [Fact]
     public void Null_matrix_throws_on_both_ticks()
     {
         var decay = new RelationshipDecaySystem();

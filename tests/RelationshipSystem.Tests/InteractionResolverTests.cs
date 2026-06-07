@@ -185,9 +185,9 @@ public class InteractionResolverTests
         var matrix = new RelationshipMatrix();
         var resolver = new InteractionResolver(matrix);
 
-        // Flirt dá +3 lifetime; pré-carrega o lifetime logo abaixo de 70.
-        matrix.Get("alice", "bob").Value.ApplyLifetime(68f);
-        // Flirt só é aceito com EffectiveDaily > 60 (atração 0); usamos 62.
+        // Flirt dá +3 ao romance lifetime; pré-carrega a trilha romântica abaixo de 70.
+        matrix.Get("alice", "bob").Romance.ApplyLifetime(68f);
+        // Flirt só é aceito com EffectiveDaily (platônico) > 60 (atração 0); usamos 62.
         matrix.Get("alice", "bob").Value.ApplyDaily(62f);
 
         Relationship? love = null;
@@ -196,7 +196,7 @@ public class InteractionResolverTests
         resolver.Perform("alice", "bob", InteractionLibrary.Flirt);
 
         var rel = matrix.Get("alice", "bob");
-        Assert.True(rel.EffectiveLifetime >= RelationshipThresholds.Love);
+        Assert.True(rel.EffectiveRomanceLifetime >= RelationshipThresholds.Love);
         Assert.NotNull(love);
         Assert.Contains(RelationshipFlag.Love, rel.Flags);
     }
@@ -208,18 +208,18 @@ public class InteractionResolverTests
         var resolver = new InteractionResolver(matrix);
         var rel = matrix.Get("alice", "bob");
 
-        // Estado inicial: apaixonada.
-        rel.Value.ApplyLifetime(72f);
-        rel.Value.ApplyDaily(50f);
+        // Estado inicial: apaixonada (trilha romântica acima de 70).
+        rel.Romance.ApplyLifetime(72f);
+        rel.Romance.ApplyDaily(50f);
         rel.Flags.Add(RelationshipFlag.Love);
 
         Relationship? broken = null;
         resolver.HeartBroken += r => broken = r;
 
-        // Insultar (não-romântico) derruba o lifetime em -5 -> 67 < 70.
+        // Insultar (não-romântico) também fere o romance: -5 -> 67 < 70.
         resolver.Perform("alice", "bob", InteractionLibrary.Insult);
 
-        Assert.True(rel.EffectiveLifetime < RelationshipThresholds.Love);
+        Assert.True(rel.EffectiveRomanceLifetime < RelationshipThresholds.Love);
         Assert.DoesNotContain(RelationshipFlag.Love, rel.Flags);
         Assert.NotNull(broken);
     }
@@ -253,13 +253,173 @@ public class InteractionResolverTests
         var resolver = new InteractionResolver(matrix);
         var rel = matrix.Get("alice", "bob");
 
-        // Forma o crush via Flirt (romântico, daily alto).
-        rel.Value.ApplyDaily(69f);
-        resolver.Perform("alice", "bob", InteractionLibrary.Flirt); // +8 -> 77 >= 70
+        // Forma o crush via Flirt: precisa de rapport platônico (>60 p/ aceitar)
+        // e o payoff vai para o romance daily.
+        rel.Value.ApplyDaily(62f);   // habilita e faz o Flirt ser aceito
+        rel.Romance.ApplyDaily(69f); // romance logo abaixo do limiar de crush
+        resolver.Perform("alice", "bob", InteractionLibrary.Flirt); // romance +8 -> 77 >= 70
         Assert.Contains(RelationshipFlag.Crush, rel.Flags);
 
-        // Um insulto derruba o daily abaixo de 70; o crush não deve grudar.
-        resolver.Perform("alice", "bob", InteractionLibrary.Insult); // -15 -> 62
+        // Um insulto derruba o romance daily abaixo de 70; o crush não deve grudar.
+        resolver.Perform("alice", "bob", InteractionLibrary.Insult); // romance -10 -> 67
+        Assert.DoesNotContain(RelationshipFlag.Crush, rel.Flags);
+    }
+
+    // --- Tópicos de conversa (interesses) ---
+
+    private static CharacterTraits Character(string id, int sportsLevel) => new()
+    {
+        Id = id,
+        Name = id,
+        Zodiac = Zodiac.Leo,
+        Aspiration = Aspiration.Knowledge,
+        Personality = new Personality(5, 5, 5, 5, 5),
+        TurnOns = new[] { "A", "B" },
+        TurnOff = "Lazy",
+        Tags = Array.Empty<string>(),
+        Interests = new Dictionary<string, int> { [InterestTopics.Sports] = sportsLevel },
+    };
+
+    [Fact]
+    public void Shared_topic_boosts_daily_gain_of_a_conversation()
+    {
+        var matrix = new RelationshipMatrix();
+        var registry = new CharacterRegistry();
+        registry.Add(Character("alice", 10));
+        registry.Add(Character("bob", 10));
+        var resolver = new InteractionResolver(matrix, registry);
+
+        resolver.Perform("alice", "bob", InteractionLibrary.Talk, InterestTopics.Sports);
+
+        // Talk dá +3; tópico mútuo a 10 soma +5 * 0.6 = +3 -> 6.
+        Assert.Equal(6f, matrix.Get("alice", "bob").Value.Daily, 3);
+    }
+
+    [Fact]
+    public void Boring_topic_dampens_a_conversation()
+    {
+        var matrix = new RelationshipMatrix();
+        var registry = new CharacterRegistry();
+        registry.Add(Character("alice", 0));
+        registry.Add(Character("bob", 0));
+        var resolver = new InteractionResolver(matrix, registry);
+
+        resolver.Perform("alice", "bob", InteractionLibrary.Talk, InterestTopics.Sports);
+
+        // Talk +3; tópico que entedia ambos: -5 * 0.6 = -3 -> 0.
+        Assert.Equal(0f, matrix.Get("alice", "bob").Value.Daily, 3);
+    }
+
+    [Fact]
+    public void Topic_is_ignored_without_a_character_registry()
+    {
+        var matrix = new RelationshipMatrix();
+        var resolver = new InteractionResolver(matrix); // sem registro
+
+        resolver.Perform("alice", "bob", InteractionLibrary.Talk, InterestTopics.Sports);
+
+        Assert.Equal(3f, matrix.Get("alice", "bob").Value.Daily);
+    }
+
+    // --- Sentimentos emergem dos marcos ---
+
+    [Fact]
+    public void Forming_friendship_creates_a_close_sentiment()
+    {
+        var matrix = new RelationshipMatrix();
+        var resolver = new InteractionResolver(matrix);
+        matrix.Get("bob", "alice").Value.ApplyDaily(60f);
+        matrix.Get("alice", "bob").Value.ApplyDaily(48f);
+
+        resolver.Perform("alice", "bob", InteractionLibrary.Talk); // cruza 50
+
+        Assert.Contains(matrix.Get("alice", "bob").Sentiments, s => s.Type == SentimentType.Close);
+    }
+
+    [Fact]
+    public void Falling_in_love_creates_an_enamored_sentiment()
+    {
+        var matrix = new RelationshipMatrix();
+        var resolver = new InteractionResolver(matrix);
+        matrix.Get("alice", "bob").Romance.ApplyLifetime(68f); // trilha romântica abaixo de 70
+        matrix.Get("alice", "bob").Value.ApplyDaily(62f);      // rapport platônico p/ aceitar o Flirt
+
+        resolver.Perform("alice", "bob", InteractionLibrary.Flirt);
+
+        Assert.Contains(matrix.Get("alice", "bob").Sentiments, s => s.Type == SentimentType.Enamored);
+    }
+
+    [Fact]
+    public void Becoming_enemies_creates_a_bitter_sentiment()
+    {
+        var matrix = new RelationshipMatrix();
+        var resolver = new InteractionResolver(matrix);
+        matrix.Get("alice", "bob").Value.ApplyDaily(-40f);
+
+        resolver.Perform("alice", "bob", InteractionLibrary.Insult); // cruza -50
+
+        Assert.Contains(matrix.Get("alice", "bob").Sentiments, s => s.Type == SentimentType.Bitter);
+    }
+
+    [Fact]
+    public void Authored_sentiment_on_effect_is_applied_and_cloned()
+    {
+        var matrix = new RelationshipMatrix();
+        var resolver = new InteractionResolver(matrix);
+
+        resolver.Perform("alice", "bob", InteractionLibrary.GiveGift);
+
+        var rel = matrix.Get("alice", "bob");
+        var adoring = Assert.Single(rel.Sentiments, s => s.Type == SentimentType.Adoring);
+        // Clonado do template: a instância no relacionamento não é a da definição.
+        Assert.NotSame(InteractionLibrary.GiveGift.OnAccept.ResultingSentiment, adoring);
+    }
+
+    // --- Trilhas Amizade × Romance são independentes ---
+
+    [Fact]
+    public void Talking_builds_friendship_without_touching_romance()
+    {
+        var matrix = new RelationshipMatrix();
+        var resolver = new InteractionResolver(matrix);
+
+        resolver.Perform("alice", "bob", InteractionLibrary.Talk);
+
+        var rel = matrix.Get("alice", "bob");
+        Assert.Equal(3f, rel.Value.Daily);     // amizade sobe
+        Assert.Equal(0f, rel.Romance.Daily);   // romance intacto
+    }
+
+    [Fact]
+    public void Flirting_builds_romance_without_touching_friendship()
+    {
+        var matrix = new RelationshipMatrix();
+        var resolver = new InteractionResolver(matrix);
+
+        // Rapport platônico só para o Flirt ser aceito.
+        var rel = matrix.Get("alice", "bob");
+        rel.Value.ApplyDaily(62f);
+
+        resolver.Perform("alice", "bob", InteractionLibrary.Flirt);
+
+        Assert.Equal(62f, rel.Value.Daily);    // amizade não muda com o flerte
+        Assert.Equal(8f, rel.Romance.Daily);   // romance sobe
+    }
+
+    [Fact]
+    public void High_friendship_alone_does_not_form_a_crush()
+    {
+        var matrix = new RelationshipMatrix();
+        var resolver = new InteractionResolver(matrix);
+
+        // Amizade no talo, romance zerado: nenhum crush deve surgir.
+        matrix.Get("bob", "alice").Value.ApplyDaily(90f);
+        matrix.Get("alice", "bob").Value.ApplyDaily(87f);
+
+        resolver.Perform("alice", "bob", InteractionLibrary.Talk);
+
+        var rel = matrix.Get("alice", "bob");
+        Assert.Contains(RelationshipFlag.Friend, rel.Flags);
         Assert.DoesNotContain(RelationshipFlag.Crush, rel.Flags);
     }
 }

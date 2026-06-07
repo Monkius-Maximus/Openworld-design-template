@@ -11,6 +11,7 @@ public delegate void InteractionResultHandler(string from, string to, Interactio
 public sealed class InteractionResolver
 {
     private readonly RelationshipMatrix _matrix;
+    private readonly CharacterRegistry? _characters;
 
     public event RelationshipEventHandler? FriendshipFormed;
     public event RelationshipEventHandler? FriendshipBroken;
@@ -19,16 +20,23 @@ public sealed class InteractionResolver
     public event RelationshipEventHandler? HeartBroken;
     public event InteractionResultHandler? InteractionPerformed;
 
-    public InteractionResolver(RelationshipMatrix matrix)
+    /// <summary>
+    /// <paramref name="characters"/> é opcional: quando fornecido, conversas com
+    /// tópico são moduladas pelos interesses dos envolvidos. Sem ele, tópicos são
+    /// ignorados silenciosamente.
+    /// </summary>
+    public InteractionResolver(RelationshipMatrix matrix, CharacterRegistry? characters = null)
     {
         _matrix = matrix ?? throw new ArgumentNullException(nameof(matrix));
+        _characters = characters;
     }
 
     /// <summary>
     /// Executa uma interação. Falha rápido se as pré-condições não são atendidas.
-    /// Retorna true se foi aceita.
+    /// Retorna true se foi aceita. <paramref name="topic"/> (opcional) modula o
+    /// ganho de Daily pelos interesses compartilhados (estilo The Sims 2).
     /// </summary>
-    public bool Perform(string from, string to, InteractionDefinition def)
+    public bool Perform(string from, string to, InteractionDefinition def, string? topic = null)
     {
         ArgumentNullException.ThrowIfNull(def);
 
@@ -44,20 +52,32 @@ public sealed class InteractionResolver
         bool accepted = def.Accepted(rel);
         var effect = accepted ? def.OnAccept : def.OnReject;
 
-        // Aplica deltas.
-        rel.Value.ApplyDaily(effect.DailyDelta);
+        // Aplica deltas à trilha platônica. Um tópico de conversa soma (ou
+        // subtrai) ao Daily conforme o interesse mútuo — só quando há registro
+        // de personagens disponível.
+        rel.Value.ApplyDaily(effect.DailyDelta + TopicBonus(from, to, topic));
         rel.Value.ApplyLifetime(effect.LifetimeDelta);
+
+        // Aplica deltas à trilha romântica (independente da amizade).
+        rel.Romance.ApplyDaily(effect.RomanceDailyDelta);
+        rel.Romance.ApplyLifetime(effect.RomanceLifetimeDelta);
 
         // Adiciona modificador persistente, se houver. Clona para não
         // compartilhar estado mutável (RemainingHours) entre relacionamentos.
-        if (effect.ResultingModifier is { } template)
+        if (effect.ResultingModifier is { } modTemplate)
         {
             rel.AddModifier(new RelationshipModifier
             {
-                Name = template.Name,
-                Value = template.Value,
-                RemainingHours = template.RemainingHours
+                Name = modTemplate.Name,
+                Value = modTemplate.Value,
+                RemainingHours = modTemplate.RemainingHours
             });
+        }
+
+        // Adiciona sentimento autoral, se houver (clonado pelo mesmo motivo).
+        if (effect.ResultingSentiment is { } sentTemplate)
+        {
+            rel.AddSentiment(Clone(sentTemplate));
         }
 
         // Atualiza flags e emite eventos.
@@ -69,6 +89,17 @@ public sealed class InteractionResolver
         return accepted;
     }
 
+    private float TopicBonus(string from, string to, string? topic)
+    {
+        if (string.IsNullOrWhiteSpace(topic) || _characters is null)
+            return 0f;
+
+        if (_characters.TryGet(from, out var a) && _characters.TryGet(to, out var b))
+            return InterestCalculator.ConversationModifier(a, b, topic);
+
+        return 0f;
+    }
+
     private void UpdateFlags(Relationship rel, InteractionDefinition def)
     {
         // Amizade mútua.
@@ -78,6 +109,7 @@ public sealed class InteractionResolver
         if (!wasFriend && isFriendNow)
         {
             rel.Flags.Add(RelationshipFlag.Friend);
+            rel.AddSentiment(LongTerm(SentimentType.Close));
             FriendshipFormed?.Invoke(rel);
         }
         else if (wasFriend && !isFriendNow)
@@ -96,31 +128,50 @@ public sealed class InteractionResolver
         if (rel.EffectiveDaily <= RelationshipThresholds.Enemy)
         {
             if (rel.Flags.Add(RelationshipFlag.Enemy))
+            {
+                rel.AddSentiment(LongTerm(SentimentType.Bitter));
                 BecameEnemies?.Invoke(rel);
+            }
         }
         else
         {
             rel.Flags.Remove(RelationshipFlag.Enemy);
         }
 
-        // Crush: só se FORMA em contexto romântico, mas é removido sempre que
-        // o daily cai abaixo do limiar (não fica grudado).
-        if (def.IsRomantic && rel.EffectiveDaily >= RelationshipThresholds.Crush)
+        // Crush: lê a trilha ROMÂNTICA (daily). Só se FORMA em contexto romântico,
+        // mas é removido sempre que o romance daily cai abaixo do limiar.
+        if (def.IsRomantic && rel.EffectiveRomanceDaily >= RelationshipThresholds.Crush)
             rel.Flags.Add(RelationshipFlag.Crush);
-        else if (rel.EffectiveDaily < RelationshipThresholds.Crush)
+        else if (rel.EffectiveRomanceDaily < RelationshipThresholds.Crush)
             rel.Flags.Remove(RelationshipFlag.Crush);
 
-        // Amor: só se FORMA em contexto romântico (FellInLove), mas a quebra
-        // (HeartBroken) vale para qualquer interação que derrube o lifetime.
-        if (def.IsRomantic && rel.EffectiveLifetime >= RelationshipThresholds.Love)
+        // Amor: lê a trilha ROMÂNTICA (lifetime). Só se FORMA em contexto romântico
+        // (FellInLove), mas a quebra (HeartBroken) vale para qualquer interação que
+        // derrube o romance lifetime (ex.: um insulto também fere a trilha romântica).
+        if (def.IsRomantic && rel.EffectiveRomanceLifetime >= RelationshipThresholds.Love)
         {
             if (rel.Flags.Add(RelationshipFlag.Love))
+            {
+                rel.AddSentiment(LongTerm(SentimentType.Enamored));
                 FellInLove?.Invoke(rel);
+            }
         }
-        else if (rel.EffectiveLifetime < RelationshipThresholds.Love
+        else if (rel.EffectiveRomanceLifetime < RelationshipThresholds.Love
                  && rel.Flags.Remove(RelationshipFlag.Love))
         {
+            rel.AddSentiment(LongTerm(SentimentType.Hurt));
             HeartBroken?.Invoke(rel);
         }
     }
+
+    private static Sentiment LongTerm(SentimentType type) =>
+        new() { Type = type, Intensity = 1f, IsLongTerm = true };
+
+    private static Sentiment Clone(Sentiment s) => new()
+    {
+        Type = s.Type,
+        Intensity = s.Intensity,
+        IsLongTerm = s.IsLongTerm,
+        RemainingHours = s.RemainingHours
+    };
 }

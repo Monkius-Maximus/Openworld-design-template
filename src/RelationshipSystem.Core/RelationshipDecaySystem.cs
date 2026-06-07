@@ -16,7 +16,9 @@ public sealed class RelationshipDecaySystem
         foreach (var rel in matrix.All)
         {
             rel.Value.DecayDailyTowardZero(RelationshipPhysics.DailyDecayPerDay);
-            rel.DecayModifiers(24f); // 24 horas
+            rel.Romance.DecayDailyTowardZero(RelationshipPhysics.DailyDecayPerDay);
+            rel.DecayModifiers(24f);   // 24 horas
+            rel.DecaySentiments(24f);  // curto prazo envelhece; longo prazo é imune
         }
     }
 
@@ -30,6 +32,7 @@ public sealed class RelationshipDecaySystem
         foreach (var rel in matrix.All)
         {
             rel.Value.NormalizeLifetimeTowardDaily(RelationshipPhysics.LifetimeNormalizationPerTick);
+            rel.Romance.NormalizeLifetimeTowardDaily(RelationshipPhysics.LifetimeNormalizationPerTick);
         }
     }
 }

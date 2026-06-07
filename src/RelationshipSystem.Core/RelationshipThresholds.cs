@@ -49,3 +49,30 @@ public static class AttractionWeights
     public const int SameAspirationBonus = 35;
     public const int ZodiacCompatibilityMax = 30;
 }
+
+/// <summary>
+/// Parâmetros do sistema de interesses / tópicos de conversa (The Sims 2).
+/// </summary>
+public static class InterestWeights
+{
+    /// <summary>Nível de interesse "neutro" (0..10): nem entedia nem empolga.</summary>
+    public const float NeutralInterest = 5f;
+
+    /// <summary>
+    /// Quanto cada ponto de interesse médio (acima/abaixo do neutro) soma ao
+    /// ganho de Daily de uma conversa. Média 10/10 → +3; média 0/0 → -3.
+    /// </summary>
+    public const float ConversationBonusPerPoint = 0.6f;
+}
+
+/// <summary>
+/// Parâmetros do sistema de sentimentos (The Sims 4).
+/// </summary>
+public static class SentimentDefaults
+{
+    /// <summary>Quantos sentimentos um relacionamento mantém; o mais fraco sai.</summary>
+    public const int MaxSentiments = 4;
+
+    /// <summary>Teto de intensidade acumulada por reforço.</summary>
+    public const float MaxIntensity = 5f;
+}
