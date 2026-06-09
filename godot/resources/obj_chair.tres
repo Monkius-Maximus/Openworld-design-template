@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Placeable" load_steps=3 format=3 uid="uid://b0buildobjchair"]
+
+[ext_resource type="Script" path="res://src/Placeable.cs" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/PlacedObject.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_script")
+Id = "chair"
+DisplayName = "Cadeira 1x1"
+Category = 1
+Scene = ExtResource("2_scene")
+FootprintSize = Vector2i(1, 1)

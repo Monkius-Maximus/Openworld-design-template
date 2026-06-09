@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="Placeable" load_steps=2 format=3 uid="uid://b0buildfloorgrass"]
+
+[ext_resource type="Script" path="res://src/Placeable.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+Id = "floor_grass"
+DisplayName = "Grama"
+Category = 0
+AtlasCoords = Vector2i(0, 0)
+FootprintSize = Vector2i(1, 1)
