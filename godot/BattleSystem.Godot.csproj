@@ -1,0 +1,17 @@
+<Project Sdk="Godot.NET.Sdk/4.3.0">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <RootNamespace>BattleSystem.Godot</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- O núcleo é reusado SEM alterações: nenhuma classe do core conhece a engine. -->
+    <ProjectReference Include="..\src\BattleSystem.Core\BattleSystem.Core.csproj" />
+    <ProjectReference Include="..\src\RelationshipSystem.Core\RelationshipSystem.Core.csproj" />
+  </ItemGroup>
+
+</Project>

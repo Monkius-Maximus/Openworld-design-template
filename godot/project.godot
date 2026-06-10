@@ -1,0 +1,14 @@
+; Projeto Godot 4 (.NET) — protótipo da etapa de batalhas SEM assets.
+; Reusa src/BattleSystem.Core e src/RelationshipSystem.Core sem alterações.
+
+config_version=5
+
+[application]
+
+config/name="Etapa de Batalhas (protótipo sem assets)"
+run/main_scene="res://scenes/Battle.tscn"
+config/features=PackedStringArray("4.3", "C#")
+
+[dotnet]
+
+project/assembly_name="BattleSystem.Godot"

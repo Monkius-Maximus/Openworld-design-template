@@ -1,0 +1,6 @@
+# Artefatos gerados pelo Godot/.NET dentro do projeto da engine
+.godot/
+*.sln
+bin/
+obj/
+mono_crash.*

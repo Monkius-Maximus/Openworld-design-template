@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>BattleSystem.Demo</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\BattleSystem.Core\BattleSystem.Core.csproj" />
+    <ProjectReference Include="..\..\src\RelationshipSystem.Core\RelationshipSystem.Core.csproj" />
+  </ItemGroup>
+
+</Project>

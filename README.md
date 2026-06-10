@@ -85,7 +85,27 @@ RelationshipSystem.sln
 │   ├── Integration/PaidInteractionResolver.cs   # presentes pagos (v2)
 │   └── Integration/RelationshipEconomyBridge.cs # cliente = relacionamento; gate de amigos
 ├── tests/EconomySystem.Tests/           # xUnit
-└── samples/EconomySystem.Demo/          # console: loop econômico v1–v3 ponta-a-ponta
+├── samples/EconomySystem.Demo/          # console: loop econômico v1–v3 ponta-a-ponta
+│
+├── src/BattleSystem.Core/               # etapa de batalhas (ver docs/batalha-design.md)
+│   ├── CombatantStats.cs                # atributos validados fail-fast (~ CharacterTraits)
+│   ├── Combatant.cs                     # vida/stamina com clamp (~ RelationshipValue)
+│   ├── StatusEffect.cs                  # status nomeado/temporário em turnos (~ RelationshipModifier)
+│   ├── BattleActionDefinition.cs        # ação declarativa (~ InteractionDefinition)
+│   ├── Battle.cs                        # times, iniciativa por velocidade, rodadas
+│   ├── BattleResolver.cs                # executa ações, falha rápido, emite eventos
+│   ├── TurnSystem.cs                    # veneno, envelhecimento de status, regen (~ DecaySystem)
+│   ├── BattleThresholds.cs              # thresholds/physics/morale rules
+│   ├── Actions/BattleActionLibrary.cs   # catálogo (golpes, defesa, veneno, cura...)
+│   ├── Ai/SimpleBattleAI.cs             # IA heurística: torna a batalha funcional sem input
+│   └── Integration/RelationshipBattleBridge.cs  # moral pré-batalha; desfecho vira modificador
+├── tests/BattleSystem.Tests/            # xUnit
+├── samples/BattleSystem.Demo/           # console: batalha 2x2 ponta-a-ponta, sem assets
+│
+└── godot/                               # adaptador Godot 4 (.NET) — FORA da sln/CI
+    ├── project.godot                    # protótipo jogável sem nenhum asset
+    ├── scenes/Battle.tscn
+    └── scripts/BattleController.cs      # eventos C# do núcleo → [Signal] + UI por código
 ```
 
 ## Módulo de Economia
@@ -105,6 +125,26 @@ próprio (**perks de ranking** + folha de pagamento no tick), traz **chance card
 de duas opções e a **moeda "soft" de aspiração** (com objetos de recompensa).
 Spec completa em [`docs/economia-design.md`](docs/economia-design.md).
 
+## Etapa de Batalhas (e migração Unreal → Godot)
+
+Módulo de combate **por turnos** em `BattleSystem.Core`, projeto irmão com a
+mesma regra de dependência unidirecional (`BattleSystem.Core →
+RelationshipSystem.Core`) e os mesmos padrões: stats validados fail-fast,
+status nomeados/temporários (em turnos), ações declarativas + resolver com
+eventos, tick de turno e thresholds centralizados. A integração com
+relacionamentos é uma costura única (`RelationshipBattleBridge`): a matriz
+vira **moral pré-batalha** (lutar ao lado de amigos anima; enfrentar rivais
+enfurece) e o desfecho vira **memória** (modificadores temporários — uma
+derrota pode criar uma inimizade real).
+
+O projeto migrou da **Unreal para a Godot Engine**: como toda regra vive em
+C#/.NET 8 puro, a mudança custa só a casca — o adaptador em `godot/` (Godot 4
+.NET, fora da sln/CI) assina os eventos C# do núcleo e os re-emite como
+`[Signal]`, com UI construída em código para ser **jogável sem nenhum asset**
+(a `SimpleBattleAI` joga os dois lados). Alinhamento planejado × entregue,
+mapeamento dos padrões Unreal→Godot, lista de assets open source (CC0/CC-BY)
+e roadmap v2–v3 em [`docs/batalha-design.md`](docs/batalha-design.md).
+
 ## Decisões de implementação
 
 - **Fail-fast nas validações.** `CharacterTraits` valida nos setters `init`
@@ -118,9 +158,10 @@ Spec completa em [`docs/economia-design.md`](docs/economia-design.md).
 - **`IsFurious`** é derivado de um modificador de fúria ativo
   (`Relationship.FuryModifierName`), gerado por `Insult`.
 - **Score efetivo** ignora modificadores expirados (`EffectiveDaily/Lifetime`).
-- A integração com Godot (Parte 8 da spec) foi omitida do build para manter o
-  núcleo livre de dependências; o `RelationshipManager` pode ser adicionado num
-  projeto Godot reutilizando `RelationshipSystem.Core` sem alterações.
+- A integração com Godot (Parte 8 da spec) ficou fora da sln para manter o
+  núcleo livre de dependências; ela agora **existe** em `godot/` (protótipo da
+  etapa de batalhas), que reutiliza `RelationshipSystem.Core` e
+  `BattleSystem.Core` sem alterações e só compila dentro da engine.
 
 ## Sentimentos (The Sims 4)
 
@@ -171,6 +212,7 @@ dotnet build
 dotnet test
 dotnet run --project samples/RelationshipSystem.Demo
 dotnet run --project samples/EconomySystem.Demo   # loop econômico v1–v3 ponta-a-ponta
+dotnet run --project samples/BattleSystem.Demo    # batalha 2x2 ponta-a-ponta (sem assets)
 ```
 
 Requer o SDK do .NET 8.
