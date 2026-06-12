@@ -15,13 +15,13 @@ public enum RewardBenefit
     /// <summary>Relacionamentos (ex.: Espelho do Amor).</summary>
     Social,
 
-    /// <summary>Gera Simoleons (ex.: Árvore do Dinheiro).</summary>
+    /// <summary>Gera $Money (ex.: Árvore do Dinheiro).</summary>
     Money,
 }
 
 /// <summary>
 /// Objeto de recompensa comprável SOMENTE com pontos de aspiração (não com
-/// Simoleons). Definição imutável validada no <c>init</c>.
+/// $Money). Definição imutável validada no <c>init</c>.
 /// </summary>
 public sealed class AspirationReward
 {

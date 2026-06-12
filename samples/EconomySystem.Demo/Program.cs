@@ -5,6 +5,7 @@ using EconomySystem.Core.Careers;
 using EconomySystem.Core.Digital;
 using EconomySystem.Core.Economy;
 using EconomySystem.Core.Integration;
+using EconomySystem.Core.Market;
 using RelationshipSystem.Core;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -13,7 +14,7 @@ using RelationshipSystem.Core;
 // e a integração com o núcleo de relacionamentos (v1–v3).
 // ─────────────────────────────────────────────────────────────────────────────
 
-static string M(int simoleons) => $"§{simoleons}";
+static string M(int money) => $"{MarketRules.BaseCurrencySymbol}{money}";
 
 Console.WriteLine("=== Economia: The Sims 2 (simplicidade amplificada) ===\n");
 
@@ -98,7 +99,7 @@ Console.WriteLine($"Boutique consolidada: {loja.Rank}★ | perks: {string.Join("
 // Reposição usufrui do desconto de atacado (perk WholesaleDiscount).
 int caixaAntes = lar.Funds.Balance;
 business.Restock(loja, lar.Funds, "vestido", unitCost: 50, quantity: 6);
-Console.WriteLine($"Reposição 6×§50 com perk ({loja.RestockDiscountPercent}% off): {M(caixaAntes)} → {M(lar.Funds.Balance)}");
+Console.WriteLine($"Reposição 6×{M(50)} com perk ({loja.RestockDiscountPercent}% off): {M(caixaAntes)} → {M(lar.Funds.Balance)}");
 
 // Clientes que gostam da Alice compram com mais facilidade (cliente = relacionamento).
 foreach (var cliente in new[] { "carol", "dane", "fern" })

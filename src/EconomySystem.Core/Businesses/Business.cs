@@ -5,7 +5,7 @@ public sealed class StockItem
 {
     public required string Id { get; init; }
 
-    /// <summary>Custo unitário pago para adquirir (em §).</summary>
+    /// <summary>Custo unitário pago para adquirir (em $Money).</summary>
     public required int UnitCost { get; init; }
 
     /// <summary>Quantidade em prateleira.</summary>
