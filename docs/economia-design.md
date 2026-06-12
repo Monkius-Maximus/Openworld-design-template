@@ -9,6 +9,9 @@ e se integra a ele, num projeto irmão `EconomySystem.Core`.
 > (**ganhar → guardar → gastar → o tempo passa**) — em vez de simular
 > macroeconomia. A modernização (gig economy, assinaturas, marketplace) é
 > deixada para fases posteriores, mas o esquema já abre espaço para ela.
+> A v4 adiciona uma camada **opt-in** de mercado financeiro (moedas, câmbio e
+> inflação) por cima deste núcleo, sem alterá-lo — ver
+> [mercado-financeiro-design.md](mercado-financeiro-design.md).
 
 ## 1. Pesquisa de referência
 
@@ -54,6 +57,7 @@ de modelar inflação.
 | **v1** | Caixa + contas + bens com depreciação; renda freelance; negócio próprio (OFB); tick diário; integração cliente↔relacionamento | Implementada |
 | **v2** | Carreiras + promoções (habilidades + **amigos**, via `AreFriends`) + humor; camada digital (assinaturas, gig, marketplace); presentes pagos | Implementada |
 | **v3** | Perks de ranking do negócio; folha de pagamento dos funcionários no tick; chance cards; moeda "soft" (pontos de aspiração + objetos de recompensa) | Implementada |
+| **v4** | Mercado financeiro opt-in: moeda base $Money nomeada; inflação global e local (por produto/por moeda); registro de moedas com câmbio; persistência JSON; UI Godot — ver [mercado-financeiro-design.md](mercado-financeiro-design.md) | Implementada |
 
 ### Mapa da v3 (aprofundamento + moeda soft)
 
