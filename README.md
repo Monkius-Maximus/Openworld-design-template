@@ -85,8 +85,33 @@ RelationshipSystem.sln
 │   ├── Integration/PaidInteractionResolver.cs   # presentes pagos (v2)
 │   └── Integration/RelationshipEconomyBridge.cs # cliente = relacionamento; gate de amigos
 ├── tests/EconomySystem.Tests/           # xUnit
-└── samples/EconomySystem.Demo/          # console: loop econômico v1–v3 ponta-a-ponta
+├── samples/EconomySystem.Demo/          # console: loop econômico v1–v3 ponta-a-ponta
+│
+├── src/MovementSystem.Core/             # movimentação 3D estilo Project Zomboid (matemática pura)
+│   ├── MovementThresholds.cs            # tuning centralizado (velocidades, câmera, mira)
+│   ├── MovementStance.cs                # sneak/walk/run/sprint + prioridades
+│   ├── AimCalculator.cs                 # mira: raio do mouse × plano na altura do personagem
+│   ├── MovementCalculator.cs            # input relativo à câmera, penalidade ao recuar, aceleração
+│   └── CameraRigCalculator.cs           # follow suave, look-ahead da mira, zoom ortográfico
+├── tests/MovementSystem.Tests/          # xUnit
+└── godot/                               # protótipo Godot 4.6 (build 2D + mundo 3D)
+    ├── src/movement/                    # PlayerController3D + IsoCameraRig
+    └── scenes/World3D.tscn              # cena de teste da movimentação (rodar com F6)
 ```
+
+## Movimentação 3D (Project Zomboid)
+
+Movimento de personagem + câmera isométrica adaptados do estilo de
+*Project Zomboid* para a stack do projeto (o PZ é Java/LWJGL; aqui é C#).
+WASD relativo à câmera, posturas (Shift corre, Alt sprinta, C agacha),
+mira com o botão direito — o cursor é projetado num **plano horizontal na
+altura do personagem** (não num raycast físico), técnica da discussão
+"How to create an aim system like Project Zomboid" — recuar mirando é
+mais lento, a câmera segue com suavização, desliza rumo ao cursor ao
+mirar, faz zoom por scroll e gira em passos de 45° (Q/E). A matemática
+mora em `MovementSystem.Core` (testável, sem Godot); a camada de engine
+em `godot/src/movement/`. Passo a passo de teste e guia para aplicar os
+assets finais em [`docs/movimentacao-3d-design.md`](docs/movimentacao-3d-design.md).
 
 ## Módulo de Economia
 
