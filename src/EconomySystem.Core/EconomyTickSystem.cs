@@ -1,4 +1,5 @@
 using EconomySystem.Core.Businesses;
+using EconomySystem.Core.Market;
 
 namespace EconomySystem.Core;
 
@@ -60,5 +61,17 @@ public sealed class EconomyTickSystem
         ArgumentNullException.ThrowIfNull(households);
         foreach (var h in households)
             DailyTick(h, day, gameDay);
+    }
+
+    /// <summary>
+    /// Variante v4 dirigida pelo mercado: avança o calendário e a inflação e
+    /// usa o próprio calendário como produtor do dia da semana e do
+    /// <c>gameDay</c> (em vez de inteiros fornecidos pelo chamador).
+    /// </summary>
+    public void DailyTick(IEnumerable<Household> households, CurrencyMarket market)
+    {
+        ArgumentNullException.ThrowIfNull(market);
+        market.AdvanceDay();
+        DailyTick(households, market.Calendar.DayOfWeek, market.Calendar.CurrentDay);
     }
 }

@@ -6,7 +6,7 @@ namespace EconomySystem.Core;
 /// </summary>
 public static class EconomyThresholds
 {
-    /// <summary>Caixa inicial de um domicílio novo (TS2: §20.000).</summary>
+    /// <summary>Caixa inicial de um domicílio novo, em $Money (TS2: §20.000).</summary>
     public const int StartingFunds = 20_000;
 
     /// <summary>Dias de tolerância para pagar antes do repo-man aparecer.</summary>
@@ -16,7 +16,7 @@ public static class EconomyThresholds
     public const int MaxHistoryEntries = 256;
 
     /// <summary>
-    /// Mínimo de vendas acumuladas (em §) para ALCANÇAR cada estrela de
+    /// Mínimo de vendas acumuladas (em $Money) para ALCANÇAR cada estrela de
     /// fidelidade, de 1 a 5 estrelas (Open for Business). Gasto 0 = 0 estrelas.
     /// </summary>
     public static readonly IReadOnlyList<int> LoyaltyStarThresholds =

@@ -19,7 +19,7 @@ public sealed class OwnedObject
             : value;
     }
 
-    /// <summary>Preço pago na compra (em Simoleons).</summary>
+    /// <summary>Preço pago na compra (em $Money).</summary>
     public required int PurchasePrice
     {
         get => _purchasePrice;
@@ -39,7 +39,7 @@ public sealed class OwnedObject
     /// <summary>Valor atual depreciado.</summary>
     public int CurrentValue { get; private set; }
 
-    /// <summary>Piso de revenda em Simoleons (<see cref="EconomyPhysics.SalvageFloorPercent"/> do preço).</summary>
+    /// <summary>Piso de revenda em $Money (<see cref="EconomyPhysics.SalvageFloorPercent"/> do preço).</summary>
     public int SalvageFloor =>
         PurchasePrice * EconomyPhysics.SalvageFloorPercent / 100;
 

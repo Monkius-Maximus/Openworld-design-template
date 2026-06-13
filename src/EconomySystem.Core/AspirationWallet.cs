@@ -2,7 +2,7 @@ namespace EconomySystem.Core;
 
 /// <summary>
 /// Carteira de PONTOS DE ASPIRAÇÃO de UM personagem — a moeda "soft" paralela do
-/// The Sims 2, separada dos Simoleons (assim como a atração é um eixo separado do
+/// The Sims 2, separada do $Money (assim como a atração é um eixo separado do
 /// relacionamento). Ganha-se preenchendo a barra de aspiração; gasta-se em
 /// objetos de recompensa. Espelha <c>HouseholdFunds</c> (setter privado + deltas).
 /// </summary>

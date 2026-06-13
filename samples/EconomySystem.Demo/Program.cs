@@ -5,6 +5,7 @@ using EconomySystem.Core.Careers;
 using EconomySystem.Core.Digital;
 using EconomySystem.Core.Economy;
 using EconomySystem.Core.Integration;
+using EconomySystem.Core.Market;
 using RelationshipSystem.Core;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -13,7 +14,7 @@ using RelationshipSystem.Core;
 // e a integração com o núcleo de relacionamentos (v1–v3).
 // ─────────────────────────────────────────────────────────────────────────────
 
-static string M(int simoleons) => $"§{simoleons}";
+static string M(int money) => $"{MarketRules.BaseCurrencySymbol}{money}";
 
 Console.WriteLine("=== Economia: The Sims 2 (simplicidade amplificada) ===\n");
 
@@ -98,7 +99,7 @@ Console.WriteLine($"Boutique consolidada: {loja.Rank}★ | perks: {string.Join("
 // Reposição usufrui do desconto de atacado (perk WholesaleDiscount).
 int caixaAntes = lar.Funds.Balance;
 business.Restock(loja, lar.Funds, "vestido", unitCost: 50, quantity: 6);
-Console.WriteLine($"Reposição 6×§50 com perk ({loja.RestockDiscountPercent}% off): {M(caixaAntes)} → {M(lar.Funds.Balance)}");
+Console.WriteLine($"Reposição 6×{M(50)} com perk ({loja.RestockDiscountPercent}% off): {M(caixaAntes)} → {M(lar.Funds.Balance)}");
 
 // Clientes que gostam da Alice compram com mais facilidade (cliente = relacionamento).
 foreach (var cliente in new[] { "carol", "dane", "fern" })
@@ -125,7 +126,7 @@ Console.WriteLine($"Pontos de aspiração de Alice: {aspiracaoAlice.Points}");
 aspiration.TryRedeem("alice", aspiracaoAlice, AspirationRewardCatalog.MoneyTree);
 Console.WriteLine($"Pontos restantes: {aspiracaoAlice.Points}\n");
 
-// 9. Presente pago (v2): custa Simoleons e afeta o relacionamento.
+// 9. Presente pago (v2): custa $Money e afeta o relacionamento.
 Console.WriteLine("— Presente pago —");
 var paid = new PaidInteractionResolver(new InteractionResolver(matrix));
 paid.GiveGift(lar.Id, lar.Funds, "alice", "bob");
@@ -138,3 +139,41 @@ Console.WriteLine($"Caixa: {M(lar.Funds.Balance)} | Bens: {M(lar.Inventory.Total
 Console.WriteLine($"Últimas movimentações:");
 foreach (var tx in lar.Funds.History.TakeLast(5))
     Console.WriteLine($"  {(tx.Amount >= 0 ? "+" : "")}{tx.Amount,-7} {tx.Kind,-13} {tx.Reason}");
+
+// 11. Mercado financeiro (v4): moedas, câmbio e inflação.
+Console.WriteLine("\n— Mercado financeiro (v4) —");
+var mercado = new CurrencyMarket();
+mercado.Inflation.GlobalAnnualPercent = 5m;
+mercado.Currencies.Add(new Currency
+{
+    Id = "Dolar",
+    Name = "$Dolar",
+    Symbol = "$D",
+    UnitsPerMoney = 5.2m,
+    ProjectedAnnualInflationPercent = 10m,
+    CreatedOnDay = mercado.Calendar.CurrentDay,
+});
+
+PriceQuote CotaCarro(string moeda) =>
+    mercado.Quote(MarketRules.SamplePreviewPriceMoney, moeda, productId: "carro");
+
+Console.WriteLine($"Inflação global: {mercado.Inflation.GlobalAnnualPercent}%/ano | " +
+                  $"$Dolar: taxa 5.2, inflação projetada 10%/ano (ativa no dia {mercado.Currencies.Get("Dolar").InflationActivationDay})");
+Console.WriteLine($"Dia {mercado.Calendar.CurrentDay,4} (ano {mercado.Calendar.CurrentYear}): " +
+                  $"carro = {CotaCarro(MarketRules.BaseCurrencyId)} | {CotaCarro("Dolar")}");
+
+for (int i = 0; i < MarketRules.DaysPerYear; i++) mercado.AdvanceDay();
+Console.WriteLine($"Dia {mercado.Calendar.CurrentDay,4} (ano {mercado.Calendar.CurrentYear}): " +
+                  $"carro = {CotaCarro(MarketRules.BaseCurrencyId)} | {CotaCarro("Dolar")} " +
+                  $"(só deriva global — inflação do $Dolar acabou de ativar)");
+
+for (int i = 0; i < MarketRules.DaysPerYear; i++) mercado.AdvanceDay();
+Console.WriteLine($"Dia {mercado.Calendar.CurrentDay,4} (ano {mercado.Calendar.CurrentYear}): " +
+                  $"carro = {CotaCarro(MarketRules.BaseCurrencyId)} | {CotaCarro("Dolar")} " +
+                  $"(global + inflação própria do $Dolar)");
+
+var salvo = MarketStateSerializer.ToJson(mercado);
+var recarregado = MarketStateSerializer.FromJson(salvo);
+Console.WriteLine($"Persistência: round-trip JSON ok — dia {recarregado.Calendar.CurrentDay}, " +
+                  $"{recarregado.Currencies.Count} moedas, carro em $Dolar = " +
+                  $"{recarregado.Quote(MarketRules.SamplePreviewPriceMoney, "Dolar", "carro")}");
