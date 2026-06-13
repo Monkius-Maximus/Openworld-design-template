@@ -25,7 +25,7 @@ public sealed class PaidInteractionResolver
     }
 
     /// <summary>
-    /// Executa uma interação que custa <paramref name="cost"/> Simoleons. Debita
+    /// Executa uma interação que custa <paramref name="cost"/> $Money. Debita
     /// o caixa; se não houver saldo, cancela (retorna false) sem tocar o
     /// relacionamento. Caso contrário, delega ao resolver social e retorna se a
     /// interação foi aceita.

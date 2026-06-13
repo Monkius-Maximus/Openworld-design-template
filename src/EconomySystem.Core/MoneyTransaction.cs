@@ -41,7 +41,7 @@ public enum TransactionKind
 /// <summary>
 /// Lançamento nomeado e justificado no caixa — o análogo econômico de um
 /// <c>RelationshipModifier</c> (estilo Crusader Kings 3): toda movimentação de
-/// Simoleons carrega um motivo legível. É um <c>record</c> imutável; o resolver
+/// $Money carrega um motivo legível. É um <c>record</c> imutável; o resolver
 /// clona o template antes de aplicar, como faz o <c>InteractionResolver</c>.
 /// </summary>
 public sealed class MoneyTransaction
@@ -57,7 +57,7 @@ public sealed class MoneyTransaction
             : value;
     }
 
-    /// <summary>Valor em Simoleons (§). Positivo = entrada, negativo = saída.</summary>
+    /// <summary>Valor na moeda base $Money. Positivo = entrada, negativo = saída.</summary>
     public required int Amount { get; init; }
 
     /// <summary>Natureza da transação.</summary>
@@ -66,6 +66,12 @@ public sealed class MoneyTransaction
     /// <summary>Dia do jogo em que ocorreu (bookkeeping opcional).</summary>
     public int? GameDay { get; init; }
 
+    /// <summary>
+    /// Moeda de denominação (v4). O caixa só opera em $Money; o campo existe
+    /// para rotular cotações/relatórios quando o mercado estiver ativo.
+    /// </summary>
+    public string CurrencyId { get; init; } = Market.MarketRules.BaseCurrencyId;
+
     /// <summary>Cria uma cópia idêntica — usada ao aplicar um template.</summary>
     public MoneyTransaction Clone() => new()
     {
@@ -73,5 +79,6 @@ public sealed class MoneyTransaction
         Amount = Amount,
         Kind = Kind,
         GameDay = GameDay,
+        CurrencyId = CurrencyId,
     };
 }

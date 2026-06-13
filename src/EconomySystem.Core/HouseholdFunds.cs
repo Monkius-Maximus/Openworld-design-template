@@ -2,7 +2,7 @@ namespace EconomySystem.Core;
 
 /// <summary>
 /// Caixa compartilhado de um domicílio (estilo The Sims 2: um único bolso por
-/// família, em Simoleons inteiros). Espelha o <c>RelationshipValue</c>: estado
+/// família, em $Money inteiros). Espelha o <c>RelationshipValue</c>: estado
 /// mutável com setter privado e métodos de delta. Por padrão NÃO há dívida —
 /// <see cref="TryWithdraw"/> falha se faltar saldo (é o gancho que o
 /// <c>BillsSystem</c> usa para acionar o repo-man).
@@ -19,7 +19,7 @@ public sealed class HouseholdFunds
         Balance = startingBalance;
     }
 
-    /// <summary>Saldo atual em Simoleons (nunca negativo).</summary>
+    /// <summary>Saldo atual em $Money (nunca negativo).</summary>
     public int Balance { get; private set; }
 
     /// <summary>Últimas transações (mais recentes ao fim), limitado.</summary>

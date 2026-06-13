@@ -18,7 +18,7 @@ public sealed class Subscription
             : value;
     }
 
-    /// <summary>Custo por ciclo de cobrança, em Simoleons.</summary>
+    /// <summary>Custo por ciclo de cobrança, em $Money.</summary>
     public required int Cost { get; init; }
 
     /// <summary>Duração do ciclo, em dias de jogo (default: uma "semana-mês").</summary>

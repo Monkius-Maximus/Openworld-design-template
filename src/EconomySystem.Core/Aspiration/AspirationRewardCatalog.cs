@@ -34,7 +34,7 @@ public static class AspirationRewardCatalog
         Benefit = RewardBenefit.Social,
     };
 
-    /// <summary>Árvore do Dinheiro: gera Simoleons ao longo do tempo.</summary>
+    /// <summary>Árvore do Dinheiro: gera $Money ao longo do tempo.</summary>
     public static readonly AspirationReward MoneyTree = new()
     {
         Id = "MoneyTree",

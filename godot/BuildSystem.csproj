@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\src\BuildSystem.Core\BuildSystem.Core.csproj" />
     <ProjectReference Include="..\src\MovementSystem.Core\MovementSystem.Core.csproj" />
+    <ProjectReference Include="..\src\EconomySystem.Core\EconomySystem.Core.csproj" />
   </ItemGroup>
 
 </Project>

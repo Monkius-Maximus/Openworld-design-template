@@ -3,7 +3,7 @@ namespace EconomySystem.Core;
 /// <summary>
 /// Resgata recompensas de aspiração: debita pontos da carteira e emite evento.
 /// Espelha o estilo dos demais resolvers (aplica + evento). A moeda "soft" é
-/// totalmente separada do caixa de Simoleons.
+/// totalmente separada do caixa de $Money.
 /// </summary>
 public sealed class AspirationResolver
 {
