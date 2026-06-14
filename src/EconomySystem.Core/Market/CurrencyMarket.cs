@@ -11,23 +11,41 @@ public sealed class CurrencyMarket
     public CurrencyMarket(
         SimulationCalendar? calendar = null,
         CurrencyRegistry? currencies = null,
-        InflationEngine? inflation = null)
+        InflationEngine? inflation = null,
+        EconomicEventScheduler? events = null)
     {
         Calendar = calendar ?? new SimulationCalendar();
         Currencies = currencies ?? new CurrencyRegistry();
         Inflation = inflation ?? new InflationEngine();
+        Events = events ?? new EconomicEventScheduler();
     }
 
     public SimulationCalendar Calendar { get; }
     public CurrencyRegistry Currencies { get; }
     public InflationEngine Inflation { get; }
 
-    /// <summary>Avança um dia de simulação e compõe a inflação do dia.</summary>
+    /// <summary>Agenda de eventos/choques econômicos (v5).</summary>
+    public EconomicEventScheduler Events { get; }
+
+    /// <summary>
+    /// Avança um dia de simulação e compõe a inflação do dia, somando à deriva
+    /// global a delta dos eventos econômicos ativos hoje.
+    /// </summary>
     public void AdvanceDay()
     {
         Calendar.AdvanceDay();
-        Inflation.AdvanceDay(Calendar, Currencies);
+        Inflation.AdvanceDay(
+            Calendar, Currencies, Events.GlobalInflationDeltaOn(Calendar.CurrentDay));
     }
+
+    /// <summary>
+    /// Fator de reajuste da renda hoje (v5): o índice global acumulado
+    /// (custo de vida) vezes o multiplicador de renda dos eventos ativos. O
+    /// tick clássico usa isto para indexar salários à inflação — renda real
+    /// constante em tempos normais, e oscilando em boom/recessão.
+    /// </summary>
+    public decimal IncomeAdjustmentFactor() =>
+        Inflation.GlobalIndex * Events.IncomeMultiplierOn(Calendar.CurrentDay);
 
     /// <summary>
     /// Cota um preço de catálogo (em $Money) numa moeda, aplicando o pipeline:

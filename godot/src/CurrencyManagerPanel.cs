@@ -124,6 +124,8 @@ public partial class CurrencyManagerPanel : PanelContainer
         foreach (var child in CurrencyList.GetChildren())
             child.QueueFree();
 
+        BuildEventsSection(market);
+
         foreach (var currency in market.Currencies.All)
         {
             var quote = market.Quote(MarketRules.SamplePreviewPriceMoney, currency.Id, productId: "carro");
@@ -142,6 +144,89 @@ public partial class CurrencyManagerPanel : PanelContainer
 
             CurrencyList.AddChild(row);
         }
+    }
+
+    /// <summary>
+    /// Renderiza a seção de eventos econômicos (v5) no topo da lista: botões de
+    /// preset (recessão/boom/crise) que agendam um evento começando hoje, o
+    /// fator de reajuste de renda vigente, e a lista de eventos ativos/futuros
+    /// com botão de remover. Tudo construído em código — sem cena/[Export] novo.
+    /// </summary>
+    private void BuildEventsSection(CurrencyMarket market)
+    {
+        int today = market.Calendar.CurrentDay;
+
+        CurrencyList.AddChild(new Label { Text = "— Eventos econômicos —" });
+
+        var presets = new HBoxContainer();
+        AddPresetButton(presets, "Recessão", () => EconomicEventLibrary.Recession(today));
+        AddPresetButton(presets, "Boom", () => EconomicEventLibrary.Boom(today));
+        AddPresetButton(presets, "Crise", () => EconomicEventLibrary.Crisis(today));
+        CurrencyList.AddChild(presets);
+
+        var fator = market.IncomeAdjustmentFactor();
+        CurrencyList.AddChild(new Label
+        {
+            Text = $"Reajuste de renda hoje (dia {today}): ×{fator:0.000} " +
+                   $"(índice global × eventos ativos)",
+        });
+
+        foreach (var ev in market.Events.All)
+        {
+            string estado = ev.IsActiveOn(today)
+                ? $"ativo até o dia {ev.EndDayExclusive - 1}"
+                : ev.HasEndedOn(today) ? "encerrado" : $"começa no dia {ev.StartDay}";
+
+            var row = new HBoxContainer();
+            row.AddChild(new Label
+            {
+                Text = $"{ev.Name}: inflação {ev.GlobalInflationDelta:+0.#;-0.#;0}%, " +
+                       $"renda ×{ev.IncomeMultiplier} — {estado}",
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            });
+
+            var remove = new Button { Text = "Remover" };
+            var id = ev.Id;
+            remove.Connect(BaseButton.SignalName.Pressed, Callable.From(() => RemoveEvent(id)));
+            row.AddChild(remove);
+            CurrencyList.AddChild(row);
+        }
+
+        CurrencyList.AddChild(new Label { Text = "— Moedas —" });
+    }
+
+    private void AddPresetButton(HBoxContainer parent, string label, Func<EconomicEvent> factory)
+    {
+        var button = new Button { Text = label };
+        button.Connect(BaseButton.SignalName.Pressed, Callable.From(() => ScheduleEvent(factory)));
+        parent.AddChild(button);
+    }
+
+    private void ScheduleEvent(Func<EconomicEvent> factory)
+    {
+        var market = Controller.Market;
+        if (market is null)
+            return;
+
+        var ev = factory();
+        // Reagendar o mesmo preset no mesmo dia colidiria de Id — substitui.
+        market.Events.Remove(ev.Id);
+        market.Events.Schedule(ev);
+        Controller.Save();
+        RefreshList();
+        PreviewLabel.Text = $"Evento '{ev.Name}' agendado para o dia {ev.StartDay} " +
+                            $"(dura {ev.DurationDays} dias).";
+    }
+
+    private void RemoveEvent(string id)
+    {
+        var market = Controller.Market;
+        if (market is null)
+            return;
+
+        if (market.Events.Remove(id))
+            Controller.Save();
+        RefreshList();
     }
 
     /// <summary>

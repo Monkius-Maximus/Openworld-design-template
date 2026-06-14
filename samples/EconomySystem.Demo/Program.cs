@@ -177,3 +177,39 @@ var recarregado = MarketStateSerializer.FromJson(salvo);
 Console.WriteLine($"Persistência: round-trip JSON ok — dia {recarregado.Calendar.CurrentDay}, " +
                   $"{recarregado.Currencies.Count} moedas, carro em $Dolar = " +
                   $"{recarregado.Quote(MarketRules.SamplePreviewPriceMoney, "Dolar", "carro")}");
+
+// 12. Eventos econômicos + renda indexada (v5): o mercado fecha o loop com o
+//     tick clássico — choques mexem na inflação E no salário real.
+Console.WriteLine("\n— Eventos econômicos e renda indexada (v5) —");
+var larV5 = new Household { Id = "lar-v5", Funds = new HouseholdFunds(0) };
+larV5.Careers["alice"] = new CareerState { CharacterId = "alice", Career = CareerLibrary.Business };
+int salarioBase = larV5.Careers["alice"].DailyWage;
+
+var mercadoV5 = new CurrencyMarket();
+mercadoV5.Inflation.GlobalAnnualPercent = 12m; // custo de vida sobe o ano todo
+mercadoV5.Events.Scheduled += e =>
+    Console.WriteLine($"  📅 Evento agendado: {e.Name} (dia {e.StartDay}, {e.DurationDays} dias)");
+mercadoV5.Events.Schedule(EconomicEventLibrary.Boom(startDay: 30));
+mercadoV5.Events.Schedule(EconomicEventLibrary.Recession(startDay: 220));
+
+careers.WagePaid += (_, txn) =>
+{
+    if (txn.Reason.Contains("Negócios"))
+        Console.WriteLine($"  dia {mercadoV5.Calendar.CurrentDay,3} (ano {mercadoV5.Calendar.CurrentYear}): " +
+                          $"salário {M(salarioBase)} → {M(txn.Amount)} " +
+                          $"(reajuste ×{mercadoV5.IncomeAdjustmentFactor():0.000})");
+};
+
+Console.WriteLine($"Salário base de Alice: {M(salarioBase)}/dia. Amostrando ao longo de um ano:");
+int[] amostras = { 1, 60, 150, 230, 363 };
+for (int dia = 1; dia <= MarketRules.DaysPerYear; dia++)
+{
+    int amostra = Array.IndexOf(amostras, dia);
+    if (amostra < 0)
+    {
+        mercadoV5.AdvanceDay();
+        continue;
+    }
+    tick.DailyTick(new[] { larV5 }, mercadoV5); // avança o dia, paga já indexado
+}
+Console.WriteLine($"Caixa de Alice após o ano (só salários, já reajustados): {M(larV5.Funds.Balance)}");

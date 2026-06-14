@@ -67,11 +67,36 @@ public class MarketStateSerializerTests
     }
 
     [Fact]
-    public void Unknown_version_throws()
+    public void Future_version_throws_but_older_schema_still_loads()
     {
-        var json = MarketStateSerializer.ToJson(new CurrencyMarket())
-            .Replace("\"version\": 1", "\"version\": 99");
-        Assert.Throws<InvalidDataException>(() => MarketStateSerializer.FromJson(json));
+        var current = $"\"version\": {MarketStateSerializer.CurrentVersion}";
+
+        var future = MarketStateSerializer.ToJson(new CurrencyMarket())
+            .Replace(current, "\"version\": 99");
+        Assert.Throws<InvalidDataException>(() => MarketStateSerializer.FromJson(future));
+
+        // Schema antigo (v1, sem eventos) ainda carrega — agenda fica vazia.
+        var legacy = MarketStateSerializer.ToJson(new CurrencyMarket())
+            .Replace(current, "\"version\": 1");
+        var restored = MarketStateSerializer.FromJson(legacy);
+        Assert.Empty(restored.Events.All);
+    }
+
+    [Fact]
+    public void Round_trip_preserves_scheduled_events()
+    {
+        var market = new CurrencyMarket();
+        market.Events.Schedule(EconomicEventLibrary.Boom(startDay: 30));
+        market.Events.Schedule(EconomicEventLibrary.Crisis(startDay: 200));
+
+        var restored = MarketStateSerializer.FromJson(MarketStateSerializer.ToJson(market));
+
+        Assert.Equal(2, restored.Events.All.Count);
+        var boom = restored.Events.All.Single(e => e.Name == "Boom");
+        Assert.Equal(30, boom.StartDay);
+        Assert.Equal(EconomicEventLibrary.Boom(30).GlobalInflationDelta, boom.GlobalInflationDelta);
+        Assert.Equal(EconomicEventLibrary.Boom(30).IncomeMultiplier, boom.IncomeMultiplier);
+        Assert.Equal(EconomicEventLibrary.Boom(30).DurationDays, boom.DurationDays);
     }
 
     [Fact]

@@ -77,13 +77,23 @@ public sealed class InflationEngine
     /// avançar. A taxa de cada moeda vem de
     /// <see cref="Currency.ProjectedAnnualInflationPercent"/> (fonte única) e
     /// só compõe quando <c>calendar.CurrentDay >= InflationActivationDay</c>.
+    /// O <paramref name="extraGlobalAnnualPercent"/> (v5) soma a deriva global
+    /// de eventos econômicos ativos; a taxa efetiva é grampeada aos limites de
+    /// <see cref="MarketRules"/> para o fator diário nunca ficar inválido.
     /// </summary>
-    public void AdvanceDay(SimulationCalendar calendar, CurrencyRegistry currencies)
+    public void AdvanceDay(
+        SimulationCalendar calendar,
+        CurrencyRegistry currencies,
+        decimal extraGlobalAnnualPercent = 0m)
     {
         ArgumentNullException.ThrowIfNull(calendar);
         ArgumentNullException.ThrowIfNull(currencies);
 
-        GlobalIndex *= DailyFactor(GlobalAnnualPercent);
+        var effectiveGlobal = Math.Clamp(
+            GlobalAnnualPercent + extraGlobalAnnualPercent,
+            MarketRules.MinAnnualInflationPercent,
+            MarketRules.MaxAnnualInflationPercent);
+        GlobalIndex *= DailyFactor(effectiveGlobal);
 
         foreach (var (productId, annualPercent) in _productAnnualPercent)
             _productIndex[productId] = ProductIndex(productId) * DailyFactor(annualPercent);

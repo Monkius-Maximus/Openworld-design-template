@@ -1,8 +1,10 @@
-# Mercado Financeiro Simulado — design (v4)
+# Mercado Financeiro Simulado — design (v4 + v5)
 
 Este documento especifica a camada de **mercado financeiro** do projeto
 (`EconomySystem.Core/Market/`): moeda base nomeada, inflação global e local,
-registro de moedas com câmbio, persistência e UI de gerenciamento no Godot.
+registro de moedas com câmbio, persistência e UI de gerenciamento no Godot
+(v4); e **eventos econômicos** (choques) que fecham o loop com o tick clássico
+via **renda indexada** (v5 — seção 8).
 
 > Filosofia: o núcleo econômico mantém a **simplicidade amplificada** de
 > [economia-design.md](economia-design.md) — o caixa do domicílio continua
@@ -127,15 +129,64 @@ string↔objeto; quem grava o arquivo é a camada Godot
   moeda e um botão **Remover** (desabilitado para a base). Validação é a do
   core (fail-fast): entradas inválidas viram mensagem no próprio preview.
 
-## 8. Fora de escopo (ganchos futuros)
+## 8. Eventos econômicos e renda indexada (v5)
+
+A v5 fecha o loop entre o mercado e o tick clássico: choques macroeconômicos
+distorcem a inflação **e** o salário real dos domicílios.
+
+### 8.1 Evento econômico
+
+`EconomicEvent` é imutável (validação fail-fast nos `init`, como `Currency`):
+uma janela `[StartDay, StartDay + DurationDays)` que, enquanto ativa, carrega
+dois efeitos independentes:
+
+| Campo | Efeito |
+|-------|--------|
+| `GlobalInflationDelta` | Pontos percentuais **somados** à inflação global anual (pode ser negativo: pressão deflacionária). |
+| `IncomeMultiplier` | Fator **multiplicativo** (> 0) sobre a renda dos domicílios. `1.2` = boom; `0.85` = recessão. |
+
+`EconomicEventScheduler` guarda os eventos e agrega, para um dado dia, a
+**soma** das deltas de inflação e o **produto** dos multiplicadores de renda
+dos ativos (janelas podem se sobrepor). `EconomicEventLibrary` traz presets
+tunáveis (`Recession`, `Boom`, `Crisis`) no estilo das outras `*Library`.
+
+### 8.2 Pipeline (mudanças mínimas)
+
+- `CurrencyMarket.AdvanceDay` passa `Events.GlobalInflationDeltaOn(hoje)` para
+  `InflationEngine.AdvanceDay` como delta extra. A taxa efetiva é **grampeada**
+  a `[Min, Max]AnnualInflationPercent` para o fator diário nunca virar inválido
+  (base negativa em `Math.Pow`).
+- `CurrencyMarket.IncomeAdjustmentFactor()` = `GlobalIndex` (custo de vida
+  acumulado) × `Events.IncomeMultiplierOn(hoje)`. É o fator de reajuste do dia.
+
+### 8.3 Renda indexada
+
+`CareerResolver.PayDailyWage` ganha um parâmetro `incomeFactor` (default `1m` =
+comportamento clássico). O `EconomyTickSystem.DailyTick(households, market)`
+calcula o fator via `IncomeAdjustmentFactor()` e o propaga aos salários — em
+tempos normais a renda **real** fica constante (acompanha a inflação); em
+boom/recessão ela oscila. Salário reajustado = `round(DailyWage × incomeFactor,
+AwayFromZero)`.
+
+### 8.4 Persistência e UI
+
+- O serializer sobe para `version = 2`, gravando os eventos agendados; saves
+  `version = 1` (sem eventos) ainda carregam (agenda vazia).
+- O `CurrencyManagerPanel` ganha uma seção "Eventos econômicos" (construída em
+  código, sem cena/`[Export]` novos): botões de preset que agendam começando
+  hoje, o fator de reajuste vigente e a lista de eventos ativos/futuros com
+  remoção.
+
+### 8.5 Fora de escopo (ganchos futuros)
 
 - **Gastar em moeda estrangeira** (converter → debitar do caixa $Money): o
   ledger continua mono-moeda; um helper `ConvertAndWithdraw` é o gancho natural.
 - **Taxas de câmbio flutuantes** (mercado de moedas como mini-jogo): a deriva
   hoje vem só da inflação; um `ExchangeRateNoise` opcional poderia compor por
   cima do `UnitsPerMoney`.
-- **Eventos macroeconômicos** (crises, choques): viriam como chance cards
-  globais alterando `GlobalAnnualPercent` temporariamente.
+- **Eventos aleatórios/encadeados**: hoje os eventos são agendados
+  explicitamente; um gerador estocástico (ou chance cards globais) poderia
+  alimentar o `EconomicEventScheduler`.
 
 ## 9. Testes
 
@@ -143,6 +194,12 @@ string↔objeto; quem grava o arquivo é a camada Godot
 (composição anual exata, ativação após 1 ano, independência dos índices),
 `CurrencyMarketQuoteTests` (exemplo do carro, arredondamento),
 `CurrencyRegistryTests`, `CurrencyMarketTests`, `MarketStateSerializerTests`
-(round-trip preserva índices; continuar a simulação após o load é idêntico a
-nunca ter salvo). Demo: seção "Mercado financeiro (v4)" em
+(round-trip preserva índices e eventos; continuar a simulação após o load é
+idêntico a nunca ter salvo; v1 antigo ainda carrega). **v5**:
+`EconomicEventTests` (janela meio-aberta, validação, presets),
+`EconomicEventSchedulerTests` (soma de deltas, produto de multiplicadores,
+sobreposição), `CurrencyMarketEventTests` (delta só compõe na janela; clamp de
+delta extrema), `IndexedIncomeTests` (salário escala pelo fator; tick dirigido
+pelo mercado indexa à inflação; recessão corta a renda real). Demo: seções
+"Mercado financeiro (v4)" e "Eventos econômicos e renda indexada (v5)" em
 `samples/EconomySystem.Demo`.
