@@ -37,4 +37,10 @@ public static class MarketRules
 
     /// <summary>Inflação anual projetada mínima aceita (deflação), em %.</summary>
     public const decimal MinAnnualInflationPercent = -50m;
+
+    /// <summary>
+    /// Duração padrão de um evento econômico (v5), em dias. Meio ano de
+    /// simulação — os presets de <c>EconomicEventLibrary</c> derivam daqui.
+    /// </summary>
+    public const int DefaultEventDurationDays = DaysPerYear / 2;
 }

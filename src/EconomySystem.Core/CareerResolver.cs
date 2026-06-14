@@ -33,15 +33,26 @@ public sealed class CareerResolver
         return true;
     }
 
-    /// <summary>Paga o salário diário do nível atual ao caixa do domicílio.</summary>
-    public void PayDailyWage(string householdId, HouseholdFunds funds, CareerState state)
+    /// <summary>
+    /// Paga o salário diário do nível atual ao caixa do domicílio. O
+    /// <paramref name="incomeFactor"/> (v5) reajusta o salário pela inflação e
+    /// pelos eventos econômicos — 1 = sem reajuste (comportamento clássico);
+    /// vem tipicamente de <see cref="Market.CurrencyMarket.IncomeAdjustmentFactor"/>.
+    /// </summary>
+    public void PayDailyWage(
+        string householdId, HouseholdFunds funds, CareerState state, decimal incomeFactor = 1m)
     {
         if (string.IsNullOrWhiteSpace(householdId))
             throw new ArgumentException("householdId required", nameof(householdId));
         ArgumentNullException.ThrowIfNull(funds);
         ArgumentNullException.ThrowIfNull(state);
+        if (incomeFactor < 0m)
+            throw new ArgumentOutOfRangeException(
+                nameof(incomeFactor), incomeFactor, "incomeFactor must be >= 0");
 
-        int wage = state.DailyWage;
+        int wage = incomeFactor == 1m
+            ? state.DailyWage
+            : (int)Math.Round(state.DailyWage * incomeFactor, MidpointRounding.AwayFromZero);
         if (wage <= 0)
             return;
 

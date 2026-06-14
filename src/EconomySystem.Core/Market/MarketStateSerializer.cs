@@ -10,7 +10,7 @@ namespace EconomySystem.Core.Market;
 /// </summary>
 public static class MarketStateSerializer
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     private static readonly JsonSerializerOptions Options = new()
     {
@@ -49,6 +49,15 @@ public static class MarketStateSerializer
                     Index = market.Inflation.ProductIndex(kv.Key),
                 }),
             CurrencyIndices = new Dictionary<string, decimal>(currencyIndices),
+            Events = market.Events.All.Select(e => new EconomicEventDto
+            {
+                Id = e.Id,
+                Name = e.Name,
+                StartDay = e.StartDay,
+                DurationDays = e.DurationDays,
+                GlobalInflationDelta = e.GlobalInflationDelta,
+                IncomeMultiplier = e.IncomeMultiplier,
+            }).ToList(),
         };
 
         return JsonSerializer.Serialize(data, Options);
@@ -66,9 +75,11 @@ public static class MarketStateSerializer
         var data = JsonSerializer.Deserialize<MarketSaveData>(json, Options)
             ?? throw new InvalidDataException("Save JSON desserializou como nulo.");
 
-        if (data.Version != CurrentVersion)
+        // Aceita schemas antigos (v1 não tinha eventos) e o atual; rejeita
+        // versões futuras desconhecidas. A v1 simplesmente carrega sem eventos.
+        if (data.Version < 1 || data.Version > CurrentVersion)
             throw new InvalidDataException(
-                $"Versão de save desconhecida: {data.Version} (esperada {CurrentVersion}).");
+                $"Versão de save desconhecida: {data.Version} (suportadas 1..{CurrentVersion}).");
 
         var baseDto = data.Currencies.FirstOrDefault(c => c.IsBase)
             ?? throw new InvalidDataException("Save sem moeda base.");
@@ -87,6 +98,17 @@ public static class MarketStateSerializer
             data.Products.ToDictionary(kv => kv.Key, kv => kv.Value.AnnualPercent),
             data.Products.ToDictionary(kv => kv.Key, kv => kv.Value.Index),
             data.CurrencyIndices);
+
+        foreach (var dto in data.Events)
+            market.Events.Schedule(new EconomicEvent
+            {
+                Id = dto.Id,
+                Name = dto.Name,
+                StartDay = dto.StartDay,
+                DurationDays = dto.DurationDays,
+                GlobalInflationDelta = dto.GlobalInflationDelta,
+                IncomeMultiplier = dto.IncomeMultiplier,
+            });
 
         return market;
     }
@@ -111,6 +133,17 @@ public static class MarketStateSerializer
         public List<CurrencyDto> Currencies { get; set; } = new();
         public Dictionary<string, ProductInflationDto> Products { get; set; } = new();
         public Dictionary<string, decimal> CurrencyIndices { get; set; } = new();
+        public List<EconomicEventDto> Events { get; set; } = new();
+    }
+
+    private sealed class EconomicEventDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public int StartDay { get; set; }
+        public int DurationDays { get; set; } = 1;
+        public decimal GlobalInflationDelta { get; set; }
+        public decimal IncomeMultiplier { get; set; } = 1m;
     }
 
     private sealed class CurrencyDto
