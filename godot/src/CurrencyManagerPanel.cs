@@ -124,16 +124,19 @@ public partial class CurrencyManagerPanel : PanelContainer
         foreach (var child in CurrencyList.GetChildren())
             child.QueueFree();
 
+        BuildHistorySection(market);
         BuildEventsSection(market);
 
         foreach (var currency in market.Currencies.All)
         {
             var quote = market.Quote(MarketRules.SamplePreviewPriceMoney, currency.Id, productId: "carro");
+            int custoReal = market.CostInMoney(MarketRules.SamplePreviewPriceMoney, currency.Id, productId: "carro");
             var row = new HBoxContainer();
             row.AddChild(new Label
             {
                 Text = $"{currency.Name} ({currency.Symbol})  taxa {currency.UnitsPerMoney}  " +
-                       $"inflação {currency.ProjectedAnnualInflationPercent}%/ano  carro: {quote}",
+                       $"inflação {currency.ProjectedAnnualInflationPercent}%/ano  carro: {quote}  " +
+                       $"(custo real {MarketRules.BaseCurrencySymbol}{custoReal})",
                 SizeFlagsHorizontal = SizeFlags.ExpandFill,
             });
 
@@ -144,6 +147,38 @@ public partial class CurrencyManagerPanel : PanelContainer
 
             CurrencyList.AddChild(row);
         }
+    }
+
+    /// <summary>
+    /// Renderiza a seção de histórico (v6): um gráfico do índice global ao longo
+    /// do tempo e botões para avançar a simulação (que também dão ao gerador
+    /// estocástico a chance de programar choques). Tudo em código.
+    /// </summary>
+    private void BuildHistorySection(CurrencyMarket market)
+    {
+        CurrencyList.AddChild(new Label { Text = "— Histórico de inflação —" });
+
+        var chart = new MarketHistoryChart();
+        CurrencyList.AddChild(chart);
+        if (market.History is not null)
+            chart.SetHistory(market.History.Samples);
+
+        var controls = new HBoxContainer();
+        AddAdvanceButton(controls, "Avançar 30 dias", 30);
+        AddAdvanceButton(controls, "Avançar 1 ano", MarketRules.DaysPerYear);
+        CurrencyList.AddChild(controls);
+    }
+
+    private void AddAdvanceButton(HBoxContainer parent, string label, int days)
+    {
+        var button = new Button { Text = label };
+        button.Connect(BaseButton.SignalName.Pressed, Callable.From(() =>
+        {
+            Controller.AdvanceDays(days);
+            RefreshList();
+            UpdatePreview();
+        }));
+        parent.AddChild(button);
     }
 
     /// <summary>

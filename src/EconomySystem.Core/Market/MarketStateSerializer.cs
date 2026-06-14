@@ -65,9 +65,11 @@ public static class MarketStateSerializer
 
     /// <summary>
     /// Reconstrói um mercado a partir do JSON salvo. Valida a versão do
-    /// schema e restaura calendário, moedas, taxas e índices acumulados.
+    /// schema e restaura calendário, moedas, taxas e índices acumulados. O
+    /// <paramref name="history"/> opcional (v6) é anexado ao mercado
+    /// reconstruído — o histórico em si é observacional e não é serializado.
     /// </summary>
-    public static CurrencyMarket FromJson(string json)
+    public static CurrencyMarket FromJson(string json, MarketHistory? history = null)
     {
         if (string.IsNullOrWhiteSpace(json))
             throw new ArgumentException("Save JSON required", nameof(json));
@@ -88,7 +90,8 @@ public static class MarketStateSerializer
         foreach (var dto in data.Currencies.Where(c => !c.IsBase))
             registry.Add(ToCurrency(dto));
 
-        var market = new CurrencyMarket(new SimulationCalendar(data.CurrentDay), registry)
+        var market = new CurrencyMarket(
+            new SimulationCalendar(data.CurrentDay), registry, history: history)
         {
             Inflation = { GlobalAnnualPercent = data.GlobalAnnualPercent },
         };

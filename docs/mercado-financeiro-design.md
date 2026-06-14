@@ -1,10 +1,11 @@
-# Mercado Financeiro Simulado — design (v4 + v5)
+# Mercado Financeiro Simulado — design (v4 + v5 + v6)
 
 Este documento especifica a camada de **mercado financeiro** do projeto
 (`EconomySystem.Core/Market/`): moeda base nomeada, inflação global e local,
 registro de moedas com câmbio, persistência e UI de gerenciamento no Godot
-(v4); e **eventos econômicos** (choques) que fecham o loop com o tick clássico
-via **renda indexada** (v5 — seção 8).
+(v4); **eventos econômicos** (choques) que fecham o loop com o tick clássico
+via **renda indexada** (v5 — seção 8); e **gasto em moeda estrangeira**,
+**eventos aleatórios** e **histórico/gráfico** (v6 — seção 9).
 
 > Filosofia: o núcleo econômico mantém a **simplicidade amplificada** de
 > [economia-design.md](economia-design.md) — o caixa do domicílio continua
@@ -188,7 +189,50 @@ AwayFromZero)`.
   explicitamente; um gerador estocástico (ou chance cards globais) poderia
   alimentar o `EconomicEventScheduler`.
 
-## 9. Testes
+## 9. Câmbio em uso, eventos aleatórios e histórico (v6)
+
+A v6 dá **uso** às moedas derivadas, automatiza os choques e torna a deriva
+observável.
+
+### 9.1 Gastar em moeda estrangeira
+
+O ledger continua mono-moeda. `CurrencyMarket.CostInMoney(basePrice,
+currencyId, productId?)` cota o item na moeda (o inteiro que o jogador vê) e
+**converte de volta** pelo câmbio: para a base é o próprio preço efetivo; para
+uma moeda com inflação própria ativa, embute o **prêmio de inflação** dela
+(gastar numa moeda inflacionada custa mais $Money de verdade).
+`MarketPurchaseResolver.TryBuy(...)` (em `Integration/`) debita esse equivalente
+do `HouseholdFunds` via `TryWithdraw`, devolve `false` sem mexer no saldo se
+faltar fundo, trata item grátis (custo 0) e dispara `Purchased`.
+
+### 9.2 Eventos aleatórios
+
+`RandomEventGenerator(seed, dailyChance)` alimenta o `EconomicEventScheduler`:
+a cada dia, com probabilidade `dailyChance`, sorteia um preset
+(recessão/boom/crise) começando naquele dia — **sem empilhar** se já houver
+evento ativo. É **determinístico por semente** (mesma seed → mesma sequência),
+o que o torna testável; o caller (`MarketController`/demo) chama
+`MaybeGenerate` 1×/dia após o `AdvanceDay`.
+
+### 9.3 Histórico e gráfico
+
+`MarketHistory` é um buffer circular de `MarketSample` (dia, índice global,
+fator de renda). `CurrencyMarket` aceita um histórico **opcional** no construtor
+e grava uma amostra por `AdvanceDay` se ele estiver presente (opt-in: o core
+fica leve, e os testes/usos sem histórico não mudam). É **observacional** —
+não é serializado; o `MarketStateSerializer.FromJson` aceita um histórico para
+anexar ao mercado reconstruído. Na UI, `MarketHistoryChart` (um `Control` que
+desenha em código) plota o índice global ao longo do tempo.
+
+### 9.4 UI
+
+O `CurrencyManagerPanel` ganha (tudo em código, sem cena/`[Export]` novos):
+uma seção "Histórico de inflação" com o gráfico e botões "Avançar 30 dias / 1
+ano" (que avançam a simulação, gravam histórico e dão a vez ao gerador
+estocástico), e cada linha de moeda passa a mostrar o **custo real em $Money**
+ao lado da cotação.
+
+## 10. Testes
 
 `tests/EconomySystem.Tests/`: `SimulationCalendarTests`, `InflationEngineTests`
 (composição anual exata, ativação após 1 ano, independência dos índices),
@@ -200,6 +244,10 @@ idêntico a nunca ter salvo; v1 antigo ainda carrega). **v5**:
 `EconomicEventSchedulerTests` (soma de deltas, produto de multiplicadores,
 sobreposição), `CurrencyMarketEventTests` (delta só compõe na janela; clamp de
 delta extrema), `IndexedIncomeTests` (salário escala pelo fator; tick dirigido
-pelo mercado indexa à inflação; recessão corta a renda real). Demo: seções
-"Mercado financeiro (v4)" e "Eventos econômicos e renda indexada (v5)" em
-`samples/EconomySystem.Demo`.
+pelo mercado indexa à inflação; recessão corta a renda real). **v6**:
+`MarketSpendTests` (custo na base = preço efetivo; prêmio de inflação da moeda;
+`TryBuy` debita/falha/grátis), `RandomEventGeneratorTests` (determinismo por
+semente, chance 0/limites, não empilha), `MarketHistoryTests` (buffer circular;
+mercado grava 1 amostra/dia quando anexado). Demo: seções "Mercado financeiro
+(v4)", "Eventos econômicos e renda indexada (v5)" e "Gastar em moeda, eventos
+aleatórios e histórico (v6)" em `samples/EconomySystem.Demo`.

@@ -12,12 +12,14 @@ public sealed class CurrencyMarket
         SimulationCalendar? calendar = null,
         CurrencyRegistry? currencies = null,
         InflationEngine? inflation = null,
-        EconomicEventScheduler? events = null)
+        EconomicEventScheduler? events = null,
+        MarketHistory? history = null)
     {
         Calendar = calendar ?? new SimulationCalendar();
         Currencies = currencies ?? new CurrencyRegistry();
         Inflation = inflation ?? new InflationEngine();
         Events = events ?? new EconomicEventScheduler();
+        History = history;
     }
 
     public SimulationCalendar Calendar { get; }
@@ -27,15 +29,20 @@ public sealed class CurrencyMarket
     /// <summary>Agenda de eventos/choques econômicos (v5).</summary>
     public EconomicEventScheduler Events { get; }
 
+    /// <summary>Histórico opcional (v6): se presente, grava uma amostra por dia.</summary>
+    public MarketHistory? History { get; }
+
     /// <summary>
     /// Avança um dia de simulação e compõe a inflação do dia, somando à deriva
-    /// global a delta dos eventos econômicos ativos hoje.
+    /// global a delta dos eventos econômicos ativos hoje. Se há histórico
+    /// anexado, registra a amostra do dia.
     /// </summary>
     public void AdvanceDay()
     {
         Calendar.AdvanceDay();
         Inflation.AdvanceDay(
             Calendar, Currencies, Events.GlobalInflationDeltaOn(Calendar.CurrentDay));
+        History?.Record(Calendar.CurrentDay, Inflation.GlobalIndex, IncomeAdjustmentFactor());
     }
 
     /// <summary>
@@ -74,6 +81,21 @@ public sealed class CurrencyMarket
             ConvertedPrice: converted,
             RoundedPrice: (int)Math.Round(converted, MidpointRounding.AwayFromZero),
             CurrencySymbol: currency.Symbol);
+    }
+
+    /// <summary>
+    /// Quanto custa, em $Money inteiros, comprar um item DENOMINADO em outra
+    /// moeda (v6): cota o preço naquela moeda (o inteiro que o jogador vê) e
+    /// converte de volta pelo câmbio. Para a base é o próprio preço efetivo;
+    /// para moedas com inflação própria ativa, embute o prêmio de inflação
+    /// delas (gastar numa moeda inflacionada custa mais $Money de verdade).
+    /// </summary>
+    public int CostInMoney(int basePriceInMoney, string currencyId, string? productId = null)
+    {
+        var quote = Quote(basePriceInMoney, currencyId, productId);
+        var currency = Currencies.Get(currencyId);
+        return (int)Math.Round(
+            quote.RoundedPrice / currency.UnitsPerMoney, MidpointRounding.AwayFromZero);
     }
 
     /// <summary>

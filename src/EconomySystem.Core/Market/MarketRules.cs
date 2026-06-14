@@ -43,4 +43,16 @@ public static class MarketRules
     /// simulação — os presets de <c>EconomicEventLibrary</c> derivam daqui.
     /// </summary>
     public const int DefaultEventDurationDays = DaysPerYear / 2;
+
+    /// <summary>
+    /// Probabilidade diária (0..1) de o gerador estocástico (v6) disparar um
+    /// evento quando não há nenhum ativo. 1% ≈ um evento a cada ~100 dias.
+    /// </summary>
+    public const double DefaultDailyEventChance = 0.01;
+
+    /// <summary>
+    /// Capacidade padrão do histórico de mercado (v6), em amostras diárias.
+    /// Dois anos de simulação — buffer circular descarta as mais antigas.
+    /// </summary>
+    public const int DefaultHistoryCapacity = DaysPerYear * 2;
 }
