@@ -22,6 +22,11 @@ public partial class CurrencyManagerPanel : PanelContainer
     [Export] public Button AddButton { get; set; } = null!;
     [Export] public VBoxContainer CurrencyList { get; set; } = null!;
 
+    // Campo de volatilidade do câmbio (v7) — injetado em código no formulário
+    // (a cena não tem essa linha), mas persistente (não vive na lista que é
+    // reconstruída a cada Refresh).
+    private SpinBox _volatilityField = null!;
+
     public override void _Ready()
     {
         if (Controller is null) throw new InvalidOperationException($"{nameof(CurrencyManagerPanel)} requires {nameof(Controller)}.");
@@ -38,6 +43,40 @@ public partial class CurrencyManagerPanel : PanelContainer
         RateField.Connect(Godot.Range.SignalName.ValueChanged, Callable.From((double _) => UpdatePreview()));
         InflationField.Connect(Godot.Range.SignalName.ValueChanged, Callable.From((double _) => UpdatePreview()));
         AddButton.Connect(BaseButton.SignalName.Pressed, Callable.From(AddCurrency));
+
+        InjectVolatilityField();
+    }
+
+    /// <summary>
+    /// Cria a linha "Volatilidade do câmbio %/dia" (v7) e a insere no formulário,
+    /// logo após a linha de inflação. Feito em código para não exigir edição da
+    /// cena; persiste entre Refreshes por viver no Layout, não na CurrencyList.
+    /// </summary>
+    private void InjectVolatilityField()
+    {
+        var inflationRow = InflationField.GetParent();
+        var layout = inflationRow.GetParent();
+
+        var row = new HBoxContainer();
+        row.AddChild(new Label
+        {
+            Text = "Volatilidade %/dia",
+            CustomMinimumSize = new Vector2(140, 0),
+        });
+        _volatilityField = new SpinBox
+        {
+            MinValue = 0,
+            MaxValue = (double)MarketRules.MaxExchangeRateVolatilityPercent,
+            Step = 0.5,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        _volatilityField.Connect(Godot.Range.SignalName.ValueChanged,
+            Callable.From((double _) => UpdatePreview()));
+        row.AddChild(_volatilityField);
+
+        layout.AddChild(row);
+        if (layout is Node layoutNode && inflationRow is Node inflationNode)
+            layoutNode.MoveChild(row, inflationNode.GetIndex() + 1);
     }
 
     /// <summary>Reconstrói preview e lista. Chamado pelo controller após o load.</summary>
@@ -65,10 +104,15 @@ public partial class CurrencyManagerPanel : PanelContainer
                 emMoney.EffectiveMoneyPrice * draft.UnitsPerMoney,
                 MidpointRounding.AwayFromZero);
 
+            string cambio = draft.ExchangeRateVolatilityPercent == 0m
+                ? "câmbio fixo"
+                : $"câmbio flutua ±{draft.ExchangeRateVolatilityPercent}%/dia";
+
             PreviewLabel.Text =
                 $"Carro: {MarketRules.BaseCurrencySymbol}{emMoney.RoundedPrice} → {draft.Symbol}{convertido}\n" +
                 $"Inflação projetada {draft.ProjectedAnnualInflationPercent}%/ano " +
-                $"(ativa a partir do dia {draft.InflationActivationDay}; hoje é o dia {market.Calendar.CurrentDay})";
+                $"(ativa a partir do dia {draft.InflationActivationDay}; hoje é o dia {market.Calendar.CurrentDay}); " +
+                $"{cambio}";
         }
         catch (ArgumentException e)
         {
@@ -131,10 +175,14 @@ public partial class CurrencyManagerPanel : PanelContainer
         {
             var quote = market.Quote(MarketRules.SamplePreviewPriceMoney, currency.Id, productId: "carro");
             int custoReal = market.CostInMoney(MarketRules.SamplePreviewPriceMoney, currency.Id, productId: "carro");
+            decimal taxaEfetiva = market.EffectiveRate(currency.Id);
+            string cambio = currency.IsBase || currency.ExchangeRateVolatilityPercent == 0m
+                ? $"taxa {currency.UnitsPerMoney}"
+                : $"taxa {currency.UnitsPerMoney}→{taxaEfetiva:0.####} (±{currency.ExchangeRateVolatilityPercent}%/dia)";
             var row = new HBoxContainer();
             row.AddChild(new Label
             {
-                Text = $"{currency.Name} ({currency.Symbol})  taxa {currency.UnitsPerMoney}  " +
+                Text = $"{currency.Name} ({currency.Symbol})  {cambio}  " +
                        $"inflação {currency.ProjectedAnnualInflationPercent}%/ano  carro: {quote}  " +
                        $"(custo real {MarketRules.BaseCurrencySymbol}{custoReal})",
                 SizeFlagsHorizontal = SizeFlags.ExpandFill,
@@ -276,6 +324,7 @@ public partial class CurrencyManagerPanel : PanelContainer
         Symbol = SymbolField.Text.Trim(),
         UnitsPerMoney = (decimal)RateField.Value,
         ProjectedAnnualInflationPercent = (decimal)InflationField.Value,
+        ExchangeRateVolatilityPercent = (decimal)(_volatilityField?.Value ?? 0.0),
         CreatedOnDay = market.Calendar.CurrentDay,
     };
 }

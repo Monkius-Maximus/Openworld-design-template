@@ -253,3 +253,21 @@ Console.WriteLine($"Carro: custo real em {MarketRules.BaseCurrencySymbol} = {M(c
                   $"comprando em $Dolar = {M(custoDolar)} (prêmio de inflação do $Dolar)");
 compras.TryBuy(comprador.Id, comprador.Funds, MarketRules.SamplePreviewPriceMoney, "Dolar", "carro");
 Console.WriteLine($"Caixa do comprador após o carro: {M(comprador.Funds.Balance)}");
+
+// 14. Câmbio flutuante no tempo (v7): a taxa caminha por um random walk diário.
+Console.WriteLine("\n— Câmbio flutuante (v7) —");
+var mercadoV7 = new CurrencyMarket(exchangeRates: new ExchangeRateEngine(seed: 2026));
+mercadoV7.Currencies.Add(new Currency
+{
+    Id = "Euro", Name = "$Euro", Symbol = "$E",
+    UnitsPerMoney = 4m, ExchangeRateVolatilityPercent = 6m, // ±6%/dia
+});
+Console.WriteLine($"$Euro: taxa nominal 4.0, volatilidade ±6%/dia. Cotação semanal do carro:");
+for (int semana = 0; semana <= 6; semana++)
+{
+    if (semana > 0)
+        for (int d = 0; d < 7; d++) mercadoV7.AdvanceDay();
+    Console.WriteLine($"  dia {mercadoV7.Calendar.CurrentDay,3}: taxa efetiva {mercadoV7.EffectiveRate("Euro"):0.###}  " +
+                      $"carro = {mercadoV7.Quote(MarketRules.SamplePreviewPriceMoney, "Euro")}");
+}
+Console.WriteLine($"(índice de câmbio grampeado à banda [{MarketRules.MinRateIndex}, {MarketRules.MaxRateIndex}]× — a taxa não dispara)");

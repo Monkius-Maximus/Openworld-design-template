@@ -10,7 +10,7 @@ namespace EconomySystem.Core.Market;
 /// </summary>
 public static class MarketStateSerializer
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     private static readonly JsonSerializerOptions Options = new()
     {
@@ -38,6 +38,7 @@ public static class MarketStateSerializer
                 Symbol = c.Symbol,
                 UnitsPerMoney = c.UnitsPerMoney,
                 ProjectedAnnualInflationPercent = c.ProjectedAnnualInflationPercent,
+                ExchangeRateVolatilityPercent = c.ExchangeRateVolatilityPercent,
                 CreatedOnDay = c.CreatedOnDay,
                 IsBase = c.IsBase,
             }).ToList(),
@@ -58,6 +59,7 @@ public static class MarketStateSerializer
                 GlobalInflationDelta = e.GlobalInflationDelta,
                 IncomeMultiplier = e.IncomeMultiplier,
             }).ToList(),
+            RateIndices = new Dictionary<string, decimal>(market.ExchangeRates.SnapshotIndices()),
         };
 
         return JsonSerializer.Serialize(data, Options);
@@ -113,6 +115,8 @@ public static class MarketStateSerializer
                 IncomeMultiplier = dto.IncomeMultiplier,
             });
 
+        market.ExchangeRates.RestoreState(data.RateIndices);
+
         return market;
     }
 
@@ -123,6 +127,7 @@ public static class MarketStateSerializer
         Symbol = dto.Symbol,
         UnitsPerMoney = dto.UnitsPerMoney,
         ProjectedAnnualInflationPercent = dto.ProjectedAnnualInflationPercent,
+        ExchangeRateVolatilityPercent = dto.ExchangeRateVolatilityPercent,
         CreatedOnDay = dto.CreatedOnDay,
         IsBase = dto.IsBase,
     };
@@ -137,6 +142,7 @@ public static class MarketStateSerializer
         public Dictionary<string, ProductInflationDto> Products { get; set; } = new();
         public Dictionary<string, decimal> CurrencyIndices { get; set; } = new();
         public List<EconomicEventDto> Events { get; set; } = new();
+        public Dictionary<string, decimal> RateIndices { get; set; } = new();
     }
 
     private sealed class EconomicEventDto
@@ -156,6 +162,7 @@ public static class MarketStateSerializer
         public string Symbol { get; set; } = string.Empty;
         public decimal UnitsPerMoney { get; set; }
         public decimal ProjectedAnnualInflationPercent { get; set; }
+        public decimal ExchangeRateVolatilityPercent { get; set; }
         public int CreatedOnDay { get; set; }
         public bool IsBase { get; set; }
     }

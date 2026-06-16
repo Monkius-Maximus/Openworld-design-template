@@ -55,4 +55,16 @@ public static class MarketRules
     /// Dois anos de simulação — buffer circular descarta as mais antigas.
     /// </summary>
     public const int DefaultHistoryCapacity = DaysPerYear * 2;
+
+    /// <summary>
+    /// Volatilidade diária máxima do câmbio (v7), em %. Amplitude do passo
+    /// simétrico do random walk por moeda. 0 = câmbio fixo (padrão).
+    /// </summary>
+    public const decimal MaxExchangeRateVolatilityPercent = 25m;
+
+    /// <summary>Piso do índice de câmbio flutuante (v7): a moeda não cai além da metade.</summary>
+    public const decimal MinRateIndex = 0.5m;
+
+    /// <summary>Teto do índice de câmbio flutuante (v7): a moeda não passa do dobro.</summary>
+    public const decimal MaxRateIndex = 2m;
 }

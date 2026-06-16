@@ -13,13 +13,15 @@ public sealed class CurrencyMarket
         CurrencyRegistry? currencies = null,
         InflationEngine? inflation = null,
         EconomicEventScheduler? events = null,
-        MarketHistory? history = null)
+        MarketHistory? history = null,
+        ExchangeRateEngine? exchangeRates = null)
     {
         Calendar = calendar ?? new SimulationCalendar();
         Currencies = currencies ?? new CurrencyRegistry();
         Inflation = inflation ?? new InflationEngine();
         Events = events ?? new EconomicEventScheduler();
         History = history;
+        ExchangeRates = exchangeRates ?? new ExchangeRateEngine();
     }
 
     public SimulationCalendar Calendar { get; }
@@ -32,16 +34,20 @@ public sealed class CurrencyMarket
     /// <summary>Histórico opcional (v6): se presente, grava uma amostra por dia.</summary>
     public MarketHistory? History { get; }
 
+    /// <summary>Motor de câmbio flutuante (v7): inerte se nenhuma moeda tem volatilidade.</summary>
+    public ExchangeRateEngine ExchangeRates { get; }
+
     /// <summary>
     /// Avança um dia de simulação e compõe a inflação do dia, somando à deriva
-    /// global a delta dos eventos econômicos ativos hoje. Se há histórico
-    /// anexado, registra a amostra do dia.
+    /// global a delta dos eventos econômicos ativos hoje; também faz o câmbio
+    /// flutuar. Se há histórico anexado, registra a amostra do dia.
     /// </summary>
     public void AdvanceDay()
     {
         Calendar.AdvanceDay();
         Inflation.AdvanceDay(
             Calendar, Currencies, Events.GlobalInflationDeltaOn(Calendar.CurrentDay));
+        ExchangeRates.AdvanceDay(Currencies);
         History?.Record(Calendar.CurrentDay, Inflation.GlobalIndex, IncomeAdjustmentFactor());
     }
 
@@ -73,7 +79,8 @@ public sealed class CurrencyMarket
 
         var converted = effectiveMoney
             * currency.UnitsPerMoney
-            * Inflation.CurrencyIndex(currency.Id);
+            * Inflation.CurrencyIndex(currency.Id)
+            * ExchangeRates.RateIndex(currency.Id);
 
         return new PriceQuote(
             BasePriceInMoney: basePriceInMoney,
@@ -81,6 +88,18 @@ public sealed class CurrencyMarket
             ConvertedPrice: converted,
             RoundedPrice: (int)Math.Round(converted, MidpointRounding.AwayFromZero),
             CurrencySymbol: currency.Symbol);
+    }
+
+    /// <summary>
+    /// Taxa de câmbio EFETIVA de hoje (v7): a nominal da moeda já com o índice
+    /// de inflação própria e o índice de câmbio flutuante. Para a base é 1.
+    /// </summary>
+    public decimal EffectiveRate(string currencyId)
+    {
+        var currency = Currencies.Get(currencyId);
+        return currency.UnitsPerMoney
+            * Inflation.CurrencyIndex(currency.Id)
+            * ExchangeRates.RateIndex(currency.Id);
     }
 
     /// <summary>
@@ -99,14 +118,15 @@ public sealed class CurrencyMarket
     }
 
     /// <summary>
-    /// Remove uma moeda do registro E limpa o índice de inflação acumulado
-    /// dela no motor (recriar a moeda recomeça do zero).
+    /// Remove uma moeda do registro E limpa os índices acumulados dela
+    /// (inflação própria e câmbio flutuante); recriar a moeda recomeça do zero.
     /// </summary>
     public bool RemoveCurrency(string id)
     {
         if (!Currencies.Remove(id))
             return false;
         Inflation.ClearCurrencyIndex(id);
+        ExchangeRates.ClearRateIndex(id);
         return true;
     }
 }

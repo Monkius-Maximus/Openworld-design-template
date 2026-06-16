@@ -13,6 +13,7 @@ public sealed class Currency
     private readonly string _symbol = string.Empty;
     private readonly decimal _unitsPerMoney = 1m;
     private readonly decimal _projectedAnnualInflationPercent;
+    private readonly decimal _exchangeRateVolatilityPercent;
 
     /// <summary>Chave única (case-insensitive). Ex.: "Dolar".</summary>
     public required string Id
@@ -65,6 +66,23 @@ public sealed class Currency
                 ? throw new ArgumentOutOfRangeException(
                     nameof(ProjectedAnnualInflationPercent), value,
                     $"Annual inflation must be within [{MarketRules.MinAnnualInflationPercent}, {MarketRules.MaxAnnualInflationPercent}]%")
+                : value;
+    }
+
+    /// <summary>
+    /// Volatilidade diária do câmbio, em % (v7). 0 = taxa fixa (padrão); &gt; 0
+    /// faz o <see cref="ExchangeRateEngine"/> aplicar um random walk simétrico
+    /// sobre a taxa desta moeda. Limitada por
+    /// <see cref="MarketRules.MaxExchangeRateVolatilityPercent"/>.
+    /// </summary>
+    public decimal ExchangeRateVolatilityPercent
+    {
+        get => _exchangeRateVolatilityPercent;
+        init => _exchangeRateVolatilityPercent =
+            value < 0m || value > MarketRules.MaxExchangeRateVolatilityPercent
+                ? throw new ArgumentOutOfRangeException(
+                    nameof(ExchangeRateVolatilityPercent), value,
+                    $"Volatility must be within [0, {MarketRules.MaxExchangeRateVolatilityPercent}]%")
                 : value;
     }
 
