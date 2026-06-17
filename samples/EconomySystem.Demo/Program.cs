@@ -213,3 +213,61 @@ for (int dia = 1; dia <= MarketRules.DaysPerYear; dia++)
     tick.DailyTick(new[] { larV5 }, mercadoV5); // avança o dia, paga já indexado
 }
 Console.WriteLine($"Caixa de Alice após o ano (só salários, já reajustados): {M(larV5.Funds.Balance)}");
+
+// 13. Câmbio em uso, eventos aleatórios e histórico (v6).
+Console.WriteLine("\n— Gastar em moeda, eventos aleatórios e histórico (v6) —");
+var historico = new MarketHistory();
+var mercadoV6 = new CurrencyMarket(history: historico);
+mercadoV6.Inflation.GlobalAnnualPercent = 6m;
+mercadoV6.Currencies.Add(new Currency
+{
+    Id = "Dolar", Name = "$Dolar", Symbol = "$D",
+    UnitsPerMoney = 5.2m, ProjectedAnnualInflationPercent = 15m, CreatedOnDay = 0,
+});
+
+// Gerador estocástico com semente fixa → sequência reproduzível.
+var gerador = new RandomEventGenerator(seed: 2026, dailyChance: 0.02);
+mercadoV6.Events.Scheduled += e =>
+    Console.WriteLine($"  🎲 Choque sorteado: {e.Name} no dia {e.StartDay}");
+
+Console.WriteLine("Simulando 2 anos com eventos aleatórios (semente 2026):");
+for (int i = 0; i < MarketRules.DaysPerYear * 2; i++)
+{
+    mercadoV6.AdvanceDay();
+    gerador.MaybeGenerate(mercadoV6);
+}
+var primeira = historico.Samples[0];
+var ultima = historico.Latest!.Value;
+Console.WriteLine($"Histórico: {historico.Samples.Count} amostras; índice global " +
+                  $"{primeira.GlobalIndex:0.000} (dia {primeira.Day}) → {ultima.GlobalIndex:0.000} (dia {ultima.Day})");
+
+// Gastar em moeda estrangeira: o carro cotado em $Dolar, debitado em $Money.
+var comprador = new Household { Id = "comprador", Funds = new HouseholdFunds(50_000) };
+var compras = new MarketPurchaseResolver(mercadoV6);
+compras.Purchased += (_, tx) =>
+    Console.WriteLine($"  🛒 {tx.Reason}: debitado {M(-tx.Amount)} do caixa");
+
+int custoBase = mercadoV6.CostInMoney(MarketRules.SamplePreviewPriceMoney, MarketRules.BaseCurrencyId, "carro");
+int custoDolar = mercadoV6.CostInMoney(MarketRules.SamplePreviewPriceMoney, "Dolar", "carro");
+Console.WriteLine($"Carro: custo real em {MarketRules.BaseCurrencySymbol} = {M(custoBase)} | " +
+                  $"comprando em $Dolar = {M(custoDolar)} (prêmio de inflação do $Dolar)");
+compras.TryBuy(comprador.Id, comprador.Funds, MarketRules.SamplePreviewPriceMoney, "Dolar", "carro");
+Console.WriteLine($"Caixa do comprador após o carro: {M(comprador.Funds.Balance)}");
+
+// 14. Câmbio flutuante no tempo (v7): a taxa caminha por um random walk diário.
+Console.WriteLine("\n— Câmbio flutuante (v7) —");
+var mercadoV7 = new CurrencyMarket(exchangeRates: new ExchangeRateEngine(seed: 2026));
+mercadoV7.Currencies.Add(new Currency
+{
+    Id = "Euro", Name = "$Euro", Symbol = "$E",
+    UnitsPerMoney = 4m, ExchangeRateVolatilityPercent = 6m, // ±6%/dia
+});
+Console.WriteLine($"$Euro: taxa nominal 4.0, volatilidade ±6%/dia. Cotação semanal do carro:");
+for (int semana = 0; semana <= 6; semana++)
+{
+    if (semana > 0)
+        for (int d = 0; d < 7; d++) mercadoV7.AdvanceDay();
+    Console.WriteLine($"  dia {mercadoV7.Calendar.CurrentDay,3}: taxa efetiva {mercadoV7.EffectiveRate("Euro"):0.###}  " +
+                      $"carro = {mercadoV7.Quote(MarketRules.SamplePreviewPriceMoney, "Euro")}");
+}
+Console.WriteLine($"(índice de câmbio grampeado à banda [{MarketRules.MinRateIndex}, {MarketRules.MaxRateIndex}]× — a taxa não dispara)");

@@ -83,6 +83,27 @@ public class MarketStateSerializerTests
     }
 
     [Fact]
+    public void Round_trip_preserves_volatility_and_floating_rate_index()
+    {
+        var market = new CurrencyMarket(exchangeRates: new ExchangeRateEngine(seed: 11));
+        market.Currencies.Add(new Currency
+        {
+            Id = "Dolar", Name = "$Dolar", Symbol = "$D",
+            UnitsPerMoney = 5.2m, ExchangeRateVolatilityPercent = 12m,
+        });
+        for (int i = 0; i < 40; i++) market.AdvanceDay();
+
+        var restored = MarketStateSerializer.FromJson(MarketStateSerializer.ToJson(market));
+
+        var dolar = restored.Currencies.Get("Dolar");
+        Assert.Equal(12m, dolar.ExchangeRateVolatilityPercent);
+        Assert.Equal(
+            market.ExchangeRates.RateIndex("Dolar"),
+            restored.ExchangeRates.RateIndex("Dolar"));
+        Assert.Equal(market.EffectiveRate("Dolar"), restored.EffectiveRate("Dolar"));
+    }
+
+    [Fact]
     public void Round_trip_preserves_scheduled_events()
     {
         var market = new CurrencyMarket();

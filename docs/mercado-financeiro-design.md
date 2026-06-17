@@ -1,10 +1,12 @@
-# Mercado Financeiro Simulado — design (v4 + v5)
+# Mercado Financeiro Simulado — design (v4 + v5 + v6 + v7)
 
 Este documento especifica a camada de **mercado financeiro** do projeto
 (`EconomySystem.Core/Market/`): moeda base nomeada, inflação global e local,
 registro de moedas com câmbio, persistência e UI de gerenciamento no Godot
-(v4); e **eventos econômicos** (choques) que fecham o loop com o tick clássico
-via **renda indexada** (v5 — seção 8).
+(v4); **eventos econômicos** (choques) que fecham o loop com o tick clássico
+via **renda indexada** (v5 — seção 8); **gasto em moeda estrangeira**,
+**eventos aleatórios** e **histórico/gráfico** (v6 — seção 9); e **câmbio
+flutuante no tempo** (v7 — seção 10).
 
 > Filosofia: o núcleo econômico mantém a **simplicidade amplificada** de
 > [economia-design.md](economia-design.md) — o caixa do domicílio continua
@@ -188,7 +190,76 @@ AwayFromZero)`.
   explicitamente; um gerador estocástico (ou chance cards globais) poderia
   alimentar o `EconomicEventScheduler`.
 
-## 9. Testes
+## 9. Câmbio em uso, eventos aleatórios e histórico (v6)
+
+A v6 dá **uso** às moedas derivadas, automatiza os choques e torna a deriva
+observável.
+
+### 9.1 Gastar em moeda estrangeira
+
+O ledger continua mono-moeda. `CurrencyMarket.CostInMoney(basePrice,
+currencyId, productId?)` cota o item na moeda (o inteiro que o jogador vê) e
+**converte de volta** pelo câmbio: para a base é o próprio preço efetivo; para
+uma moeda com inflação própria ativa, embute o **prêmio de inflação** dela
+(gastar numa moeda inflacionada custa mais $Money de verdade).
+`MarketPurchaseResolver.TryBuy(...)` (em `Integration/`) debita esse equivalente
+do `HouseholdFunds` via `TryWithdraw`, devolve `false` sem mexer no saldo se
+faltar fundo, trata item grátis (custo 0) e dispara `Purchased`.
+
+### 9.2 Eventos aleatórios
+
+`RandomEventGenerator(seed, dailyChance)` alimenta o `EconomicEventScheduler`:
+a cada dia, com probabilidade `dailyChance`, sorteia um preset
+(recessão/boom/crise) começando naquele dia — **sem empilhar** se já houver
+evento ativo. É **determinístico por semente** (mesma seed → mesma sequência),
+o que o torna testável; o caller (`MarketController`/demo) chama
+`MaybeGenerate` 1×/dia após o `AdvanceDay`.
+
+### 9.3 Histórico e gráfico
+
+`MarketHistory` é um buffer circular de `MarketSample` (dia, índice global,
+fator de renda). `CurrencyMarket` aceita um histórico **opcional** no construtor
+e grava uma amostra por `AdvanceDay` se ele estiver presente (opt-in: o core
+fica leve, e os testes/usos sem histórico não mudam). É **observacional** —
+não é serializado; o `MarketStateSerializer.FromJson` aceita um histórico para
+anexar ao mercado reconstruído. Na UI, `MarketHistoryChart` (um `Control` que
+desenha em código) plota o índice global ao longo do tempo.
+
+### 9.4 UI
+
+O `CurrencyManagerPanel` ganha (tudo em código, sem cena/`[Export]` novos):
+uma seção "Histórico de inflação" com o gráfico e botões "Avançar 30 dias / 1
+ano" (que avançam a simulação, gravam histórico e dão a vez ao gerador
+estocástico), e cada linha de moeda passa a mostrar o **custo real em $Money**
+ao lado da cotação.
+
+## 10. Câmbio flutuante no tempo (v7)
+
+Até a v6 a taxa de uma moeda só derivava pela inflação própria (lenta,
+determinística). A v7 adiciona **volatilidade de curto prazo**: a taxa caminha
+por um random walk diário.
+
+- `Currency.ExchangeRateVolatilityPercent` (default 0 = câmbio fixo) declara a
+  amplitude diária — fonte única, como a inflação da moeda. A `Currency`
+  continua **imutável**.
+- `ExchangeRateEngine` mantém um índice de câmbio por moeda (1m = sem deriva)
+  que a cada dia recebe um passo simétrico em `[-vol, +vol]%` e é **grampeado**
+  à banda `[MinRateIndex, MaxRateIndex]` (0,5×–2×) para a taxa não disparar.
+  É **determinístico por semente** (testável); a base e moedas com volatilidade
+  0 ficam inertes, então mercados anteriores não mudam.
+- O pipeline de `Quote` ganha mais um fator: `… × CurrencyIndex × RateIndex`.
+  `CurrencyMarket.EffectiveRate(id)` = `UnitsPerMoney × CurrencyIndex ×
+  RateIndex` é a taxa efetiva de hoje. `AdvanceDay` chama o motor de câmbio;
+  `RemoveCurrency` limpa também o índice de câmbio.
+- **Persistência**: serializer sobe para `version = 3`, gravando a volatilidade
+  de cada moeda e os índices de câmbio acumulados; saves v1/v2 ainda carregam
+  (câmbio fixo, índices vazios). O RNG re-semeia no load (o *nível* da taxa é
+  preservado; só a sequência futura de ruído recomeça — aceitável para FX).
+- **UI**: o formulário ganha uma linha "Volatilidade %/dia" (injetada em código,
+  persistente fora da lista), e cada moeda na lista mostra a **taxa efetiva**
+  `nominal→efetiva (±vol%/dia)` — que se move ao clicar "Avançar N dias".
+
+## 11. Testes
 
 `tests/EconomySystem.Tests/`: `SimulationCalendarTests`, `InflationEngineTests`
 (composição anual exata, ativação após 1 ano, independência dos índices),
@@ -200,6 +271,13 @@ idêntico a nunca ter salvo; v1 antigo ainda carrega). **v5**:
 `EconomicEventSchedulerTests` (soma de deltas, produto de multiplicadores,
 sobreposição), `CurrencyMarketEventTests` (delta só compõe na janela; clamp de
 delta extrema), `IndexedIncomeTests` (salário escala pelo fator; tick dirigido
-pelo mercado indexa à inflação; recessão corta a renda real). Demo: seções
-"Mercado financeiro (v4)" e "Eventos econômicos e renda indexada (v5)" em
-`samples/EconomySystem.Demo`.
+pelo mercado indexa à inflação; recessão corta a renda real). **v6**:
+`MarketSpendTests` (custo na base = preço efetivo; prêmio de inflação da moeda;
+`TryBuy` debita/falha/grátis), `RandomEventGeneratorTests` (determinismo por
+semente, chance 0/limites, não empilha), `MarketHistoryTests` (buffer circular;
+mercado grava 1 amostra/dia quando anexado). **v7**: `ExchangeRateEngineTests`
+(determinismo por semente, clamp da banda, base/vol-0 inertes, clear),
+`CurrencyMarketFxTests` (cotação se move; moeda fixa estável; taxa efetiva;
+remoção limpa o índice). Demo: seções "Mercado financeiro (v4)", "Eventos
+econômicos e renda indexada (v5)", "Gastar em moeda, eventos aleatórios e
+histórico (v6)" e "Câmbio flutuante (v7)" em `samples/EconomySystem.Demo`.
