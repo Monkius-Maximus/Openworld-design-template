@@ -94,9 +94,17 @@ RelationshipSystem.sln
 │   ├── MovementCalculator.cs            # input relativo à câmera, penalidade ao recuar, aceleração
 │   └── CameraRigCalculator.cs           # follow suave, look-ahead da mira, zoom ortográfico
 ├── tests/MovementSystem.Tests/          # xUnit
-└── godot/                               # protótipo Godot 4.6 (build 2D + mundo 3D)
+│
+├── src/WorldSimulation.Core/            # INTEGRAÇÃO: o mundo jogável (relógio + fachada dos núcleos)
+│   ├── WorldClock.cs                    # minutos de jogo → hora, 3 normalizações/dia, meia-noite
+│   ├── GameWorld.cs                     # amarra matriz+resolver+wants&fears, domicílios+ticks+mercado
+│   ├── DemoWorldFactory.cs              # mundo de demonstração (Jogador, Alice, Bruno)
+│   └── WorldThresholds.cs               # horários de normalização, hora inicial
+├── tests/WorldSimulation.Tests/         # xUnit
+└── godot/                               # protótipo Godot 4.6 (build 2D + mundo 3D integrado)
     ├── src/movement/                    # PlayerController3D + IsoCameraRig
-    └── scenes/World3D.tscn              # cena de teste da movimentação (rodar com F6)
+    ├── src/game/                        # GameManager, Npc3D, InteractionMenu, GameHud, BuildController3D
+    └── scenes/World3D.tscn              # mundo jogável integrado (rodar com F6)
 ```
 
 ## Movimentação 3D (Project Zomboid)
@@ -112,6 +120,20 @@ mirar, faz zoom por scroll e gira em passos de 45° (Q/E). A matemática
 mora em `MovementSystem.Core` (testável, sem Godot); a camada de engine
 em `godot/src/movement/`. Passo a passo de teste e guia para aplicar os
 assets finais em [`docs/movimentacao-3d-design.md`](docs/movimentacao-3d-design.md).
+
+## Mundo integrado (WorldSimulation)
+
+A camada que liga tudo: `WorldSimulation.Core` agrega os núcleos num
+`GameWorld` (relógio de jogo → decay/normalização de relacionamentos e
+tick econômico diário sobre o calendário do mercado v4; interações da UI
+com resultado tipado; presente pago; log de eventos narrado), e a cena
+`World3D.tscn` vira um mundo jogável: NPCs com `Area3D` (tecla **F**
+abre o menu de interações sociais), HUD com relógio/caixa/aspiração,
+modo construção 3D (**B**, reutilizando `PlacementGrid`/`Footprint` do
+núcleo 2D — objetos colocados têm colisão real) e o painel de moedas
+(**M**) que pausa o jogador e injeta o calendário do save no mundo.
+Arquitetura, tabela de conexões e passo a passo de teste em
+[`docs/integracao-mundo-design.md`](docs/integracao-mundo-design.md).
 
 ## Módulo de Economia
 

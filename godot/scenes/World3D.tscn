@@ -1,7 +1,14 @@
-[gd_scene load_steps=19 format=3 uid="uid://b0world3dmove"]
+[gd_scene load_steps=31 format=3 uid="uid://b0world3dmove"]
 
 [ext_resource type="Script" path="res://src/movement/PlayerController3D.cs" id="1_ply3d"]
 [ext_resource type="Script" path="res://src/movement/IsoCameraRig.cs" id="2_rig"]
+[ext_resource type="Script" path="res://src/game/Npc3D.cs" id="3_npc"]
+[ext_resource type="Script" path="res://src/game/GameHud.cs" id="4_hud"]
+[ext_resource type="Script" path="res://src/game/InteractionMenu.cs" id="5_menu"]
+[ext_resource type="Script" path="res://src/game/BuildController3D.cs" id="6_bld3d"]
+[ext_resource type="Script" path="res://src/game/GameManager.cs" id="7_gm"]
+[ext_resource type="Script" path="res://src/MarketController.cs" id="8_mktc"]
+[ext_resource type="Script" path="res://src/CurrencyManagerPanel.cs" id="9_curp"]
 
 [sub_resource type="StandardMaterial3D" id="MatGround"]
 albedo_color = Color(0.36, 0.55, 0.33, 1)
@@ -51,6 +58,25 @@ material = SubResource("MatAim")
 top_radius = 0.25
 bottom_radius = 0.25
 height = 0.04
+
+[sub_resource type="StandardMaterial3D" id="MatAlice"]
+albedo_color = Color(0.9, 0.4, 0.65, 1)
+
+[sub_resource type="CapsuleMesh" id="AliceMesh"]
+material = SubResource("MatAlice")
+radius = 0.35
+height = 1.7
+
+[sub_resource type="StandardMaterial3D" id="MatBruno"]
+albedo_color = Color(0.35, 0.65, 0.35, 1)
+
+[sub_resource type="CapsuleMesh" id="BrunoMesh"]
+material = SubResource("MatBruno")
+radius = 0.38
+height = 1.85
+
+[sub_resource type="SphereShape3D" id="ProximityShape"]
+radius = 2.2
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMat"]
 
@@ -106,6 +132,8 @@ mesh = SubResource("ObstacleMesh")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Obstacle3"]
 shape = SubResource("ObstacleShape")
 
+[node name="ObjectsRoot" type="Node3D" parent="."]
+
 [node name="AimMarker" type="Node3D" parent="."]
 visible = false
 
@@ -130,6 +158,62 @@ mesh = SubResource("NoseMesh")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("PlayerShape")
 
+[node name="Alice" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, 3)
+script = ExtResource("3_npc")
+CharacterId = "alice"
+DisplayName = "Alice"
+ProximityArea = NodePath("Proximity")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Alice"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
+mesh = SubResource("AliceMesh")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Alice"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("PlayerShape")
+
+[node name="NameTag" type="Label3D" parent="Alice"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 0)
+text = "Alice"
+billboard = 1
+font_size = 96
+outline_size = 24
+
+[node name="Proximity" type="Area3D" parent="Alice"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Alice/Proximity"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("ProximityShape")
+
+[node name="Bruno" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, -4)
+script = ExtResource("3_npc")
+CharacterId = "bruno"
+DisplayName = "Bruno"
+ProximityArea = NodePath("Proximity")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Bruno"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.925, 0)
+mesh = SubResource("BrunoMesh")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bruno"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("PlayerShape")
+
+[node name="NameTag" type="Label3D" parent="Bruno"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.3, 0)
+text = "Bruno"
+billboard = 1
+font_size = 96
+outline_size = 24
+
+[node name="Proximity" type="Area3D" parent="Bruno"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bruno/Proximity"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("ProximityShape")
+
 [node name="CameraRig" type="Node3D" parent="."]
 script = ExtResource("2_rig")
 Target = NodePath("../Player")
@@ -144,3 +228,140 @@ projection = 1
 current = true
 size = 14.0
 far = 200.0
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Hud" type="Control" parent="UI"]
+script = ExtResource("4_hud")
+StatusLabel = NodePath("StatusLabel")
+PromptLabel = NodePath("PromptLabel")
+LogLabel = NodePath("LogLabel")
+
+[node name="StatusLabel" type="Label" parent="UI/Hud"]
+offset_left = 16.0
+offset_top = 8.0
+offset_right = 920.0
+offset_bottom = 34.0
+
+[node name="LogLabel" type="Label" parent="UI/Hud"]
+offset_left = 16.0
+offset_top = 460.0
+offset_right = 640.0
+offset_bottom = 636.0
+vertical_alignment = 2
+
+[node name="PromptLabel" type="Label" parent="UI/Hud"]
+offset_left = 430.0
+offset_top = 600.0
+offset_right = 920.0
+offset_bottom = 630.0
+
+[node name="BuildPalette" type="VBoxContainer" parent="UI"]
+visible = false
+offset_left = 930.0
+offset_top = 16.0
+offset_right = 1136.0
+offset_bottom = 320.0
+
+[node name="InteractionMenu" type="PanelContainer" parent="UI"]
+visible = false
+offset_left = 380.0
+offset_top = 150.0
+offset_right = 770.0
+offset_bottom = 480.0
+script = ExtResource("5_menu")
+
+[node name="CurrencyPanel" type="PanelContainer" parent="UI"]
+visible = false
+offset_left = 176.0
+offset_top = 16.0
+offset_right = 640.0
+offset_bottom = 420.0
+script = ExtResource("9_curp")
+Controller = NodePath("../../MarketController")
+NameField = NodePath("Layout/NameRow/NameField")
+SymbolField = NodePath("Layout/SymbolRow/SymbolField")
+RateField = NodePath("Layout/RateRow/RateField")
+InflationField = NodePath("Layout/InflationRow/InflationField")
+PreviewLabel = NodePath("Layout/PreviewLabel")
+AddButton = NodePath("Layout/AddButton")
+CurrencyList = NodePath("Layout/CurrencyList")
+
+[node name="Layout" type="VBoxContainer" parent="UI/CurrencyPanel"]
+
+[node name="Title" type="Label" parent="UI/CurrencyPanel/Layout"]
+text = "Moedas (base: $Money) — tecla M"
+
+[node name="NameRow" type="HBoxContainer" parent="UI/CurrencyPanel/Layout"]
+
+[node name="NameLabel" type="Label" parent="UI/CurrencyPanel/Layout/NameRow"]
+text = "Nome"
+custom_minimum_size = Vector2(140, 0)
+
+[node name="NameField" type="LineEdit" parent="UI/CurrencyPanel/Layout/NameRow"]
+size_flags_horizontal = 3
+placeholder_text = "$Dolar"
+
+[node name="SymbolRow" type="HBoxContainer" parent="UI/CurrencyPanel/Layout"]
+
+[node name="SymbolLabel" type="Label" parent="UI/CurrencyPanel/Layout/SymbolRow"]
+text = "Símbolo"
+custom_minimum_size = Vector2(140, 0)
+
+[node name="SymbolField" type="LineEdit" parent="UI/CurrencyPanel/Layout/SymbolRow"]
+size_flags_horizontal = 3
+placeholder_text = "$D"
+
+[node name="RateRow" type="HBoxContainer" parent="UI/CurrencyPanel/Layout"]
+
+[node name="RateLabel" type="Label" parent="UI/CurrencyPanel/Layout/RateRow"]
+text = "Taxa (1 $M = N)"
+custom_minimum_size = Vector2(140, 0)
+
+[node name="RateField" type="SpinBox" parent="UI/CurrencyPanel/Layout/RateRow"]
+size_flags_horizontal = 3
+min_value = 0.0001
+max_value = 1000000.0
+step = 0.0001
+value = 1.0
+
+[node name="InflationRow" type="HBoxContainer" parent="UI/CurrencyPanel/Layout"]
+
+[node name="InflationLabel" type="Label" parent="UI/CurrencyPanel/Layout/InflationRow"]
+text = "Inflação %/ano"
+custom_minimum_size = Vector2(140, 0)
+
+[node name="InflationField" type="SpinBox" parent="UI/CurrencyPanel/Layout/InflationRow"]
+size_flags_horizontal = 3
+min_value = -50.0
+max_value = 1000.0
+step = 0.1
+
+[node name="PreviewLabel" type="Label" parent="UI/CurrencyPanel/Layout"]
+text = "Preencha os campos para ver a cotação do carro."
+autowrap_mode = 3
+
+[node name="AddButton" type="Button" parent="UI/CurrencyPanel/Layout"]
+text = "Adicionar moeda"
+
+[node name="ListTitle" type="Label" parent="UI/CurrencyPanel/Layout"]
+text = "Moedas registradas"
+
+[node name="CurrencyList" type="VBoxContainer" parent="UI/CurrencyPanel/Layout"]
+
+[node name="MarketController" type="Node" parent="."]
+script = ExtResource("8_mktc")
+Panel = NodePath("../UI/CurrencyPanel")
+
+[node name="BuildController3D" type="Node" parent="."]
+script = ExtResource("6_bld3d")
+ObjectsRoot = NodePath("../ObjectsRoot")
+Palette = NodePath("../UI/BuildPalette")
+
+[node name="GameManager" type="Node" parent="."]
+script = ExtResource("7_gm")
+Player = NodePath("../Player")
+MarketController = NodePath("../MarketController")
+Hud = NodePath("../UI/Hud")
+Menu = NodePath("../UI/InteractionMenu")
+Build = NodePath("../BuildController3D")
