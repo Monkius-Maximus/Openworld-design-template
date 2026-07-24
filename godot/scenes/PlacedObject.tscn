@@ -1,10 +1,18 @@
-[gd_scene load_steps=2 format=3 uid="uid://b0buildplacedobj"]
+[gd_scene load_steps=6 format=3 uid="uid://b0buildplacedobj"]
 
 [ext_resource type="Script" path="res://src/PlacedObject.cs" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/obj_dir0_placeholder.png" id="2_d0"]
+[ext_resource type="Texture2D" path="res://assets/obj_dir90_placeholder.png" id="3_d90"]
+[ext_resource type="Texture2D" path="res://assets/obj_dir180_placeholder.png" id="4_d180"]
+[ext_resource type="Texture2D" path="res://assets/obj_dir270_placeholder.png" id="5_d270"]
 
 [node name="PlacedObject" type="Node2D"]
+y_sort_enabled = true
 script = ExtResource("1_script")
+Sprite = NodePath("Sprite")
+DirectionTextures = Array[Texture2D]([ExtResource("2_d0"), ExtResource("3_d90"), ExtResource("4_d180"), ExtResource("5_d270")])
 
-[node name="Body_PlaceholderArtHere" type="Polygon2D" parent="."]
-color = Color(0.85, 0.6, 0.3, 1)
-polygon = PackedVector2Array(-28, 0, 0, -14, 28, 0, 28, -22, 0, -36, -28, -22)
+[node name="Sprite" type="Sprite2D" parent="."]
+texture = ExtResource("2_d0")
+centered = false
+offset = Vector2(-32, -64)
