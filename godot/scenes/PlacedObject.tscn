@@ -15,4 +15,4 @@ DirectionTextures = Array[Texture2D]([ExtResource("2_d0"), ExtResource("3_d90"),
 [node name="Sprite" type="Sprite2D" parent="."]
 texture = ExtResource("2_d0")
 centered = false
-offset = Vector2(-32, -64)
+offset = Vector2(-64, -128)

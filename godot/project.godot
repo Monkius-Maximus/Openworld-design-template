@@ -13,6 +13,19 @@ config/features=PackedStringArray("4.6", "C#", "Forward Plus")
 
 project/assembly_name="BuildSystem"
 
+[display]
+
+; Base 1920x1080: 16:9 cobre ~75% do Steam HW Survey (1080p 51%, 1440p 20%, 4K 4.5%).
+; canvas_items escala UI e mundo juntos; expand mostra MAIS mundo em 16:10/ultrawide
+; em vez de barras pretas. Ver docs/resolucao-design.md.
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/size/window_width_override=1280
+window/size/window_height_override=720
+window/size/resizable=true
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
 [input]
 
 build_toggle={
