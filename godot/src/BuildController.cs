@@ -171,7 +171,7 @@ public partial class BuildController : Node
         var node = scene.Instantiate<PlacedObject>();
         ObjectsRoot.AddChild(node);
         node.GlobalPosition = FloorLayer.ToGlobal(FloorLayer.MapToLocal(cell));
-        node.RotationDegrees = (int)_rotation * 90;
+        node.ApplyRotation(_rotation);
 
         var id = Guid.NewGuid();
         _grid.Occupy(cells, id);

@@ -12,24 +12,28 @@
 [ext_resource type="Resource" path="res://resources/obj_chair.tres" id="8_chair"]
 
 [sub_resource type="CircleShape2D" id="Circle_1"]
-radius = 16.0
+radius = 22.0
 
 [node name="World" type="Node2D"]
+y_sort_enabled = true
 
 [node name="Camera2D" type="Camera2D" parent="."]
 
 [node name="FloorLayer" type="TileMapLayer" parent="."]
+z_index = -1
 tile_set = ExtResource("5_tset")
 
 [node name="ObjectsRoot" type="Node2D" parent="."]
+y_sort_enabled = true
 
 [node name="Player" type="CharacterBody2D" parent="."]
+y_sort_enabled = true
 position = Vector2(0, 64)
 script = ExtResource("4_ply")
 
 [node name="Body" type="Polygon2D" parent="Player"]
 color = Color(0.3, 0.5, 1, 1)
-polygon = PackedVector2Array(-10, -28, 10, -28, 10, 0, -10, 0)
+polygon = PackedVector2Array(-20, -110, 20, -110, 20, 0, -20, 0)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Player"]
 shape = SubResource("Circle_1")
