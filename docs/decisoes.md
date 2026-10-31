@@ -28,7 +28,9 @@ Regras daqui em diante:
 1. **Nenhuma entrada é renumerada.** Se uma lacuna for recuperada, ela entra no seu número.
 2. Uma decisão mudada ganha número novo, que cita a antiga. O texto antigo não é editado.
 3. **As próximas decisões começam em D40.** D35–D39 foram rascunhos da ponte com o
-   SoccerDreamGame; viraram o ADR-0020 daquele repositório e não são reutilizados aqui.
+   SoccerDreamGame; viraram o ADR do port do motor de relacionamento daquele repositório e não
+   são reutilizados aqui. Esse ADR ainda é rascunho e ganha número quando for commitado (o
+   ADR-0020 de lá já é o mapa de repositórios).
 4. No SoccerDreamGame, estas decisões são citadas com o prefixo `OW-` (`OW-D27`), segundo o
    ADR-0016 de lá.
 
@@ -162,8 +164,8 @@ temática Sims (não copiável).
   - `InteractionResolver` chamava `InterestCalculator` diretamente → resolvido no commit
     "InteractionResolver recebe o bônus de tópico como delegate".
   - `AttractionWeights` misturado aos limiares → já separado em `RelationshipThresholds.cs:44-52`.
-- A primeira cópia é a do motor de relacionamento para o SoccerDreamGame: ADR-0020 daquele
-  repositório.
+- A primeira cópia é a do motor de relacionamento para o SoccerDreamGame: o ADR do port do
+  motor de relacionamento daquele repositório (regra 3).
 
 ## D28 — Formato de save · Reconstruída (pendente)
 
@@ -174,7 +176,7 @@ O formato de persistência do mundo é uma decisão em aberto.
   `user://market_state.json`). Relacionamentos, aspiração, carreiras, fundos, relógio e objetos
   colocados são voláteis.
 - No SoccerDreamGame a questão já foi resolvida com SQLite, que vale para a cópia de lá
-  (ADR-0020 §8). A decisão daqui continua aberta.
+  (§8 do ADR do port, regra 3). A decisão daqui continua aberta.
 
 ## D29–D30 — Lacuna
 
