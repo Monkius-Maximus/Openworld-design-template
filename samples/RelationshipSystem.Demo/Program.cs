@@ -38,15 +38,19 @@ var bob = new CharacterTraits
     }
 };
 
-// Registro de personagens: dá ao resolver acesso aos interesses para
-// modular conversas por tópico.
+// Registro de personagens: o bônus de tópico do resolver lê os interesses
+// daqui para modular conversas.
 var registry = new CharacterRegistry();
 registry.Add(alice);
 registry.Add(bob);
 
 // Matriz, resolver e decay.
 var matrix = new RelationshipMatrix();
-var resolver = new InteractionResolver(matrix, registry);
+var resolver = new InteractionResolver(
+    matrix,
+    (from, to, topic) => registry.TryGet(from, out var a) && registry.TryGet(to, out var b)
+        ? InterestCalculator.ConversationModifier(a, b, topic)
+        : 0f);
 var decay = new RelationshipDecaySystem();
 
 // Atração assimétrica.
