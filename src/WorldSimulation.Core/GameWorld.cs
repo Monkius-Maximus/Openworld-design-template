@@ -38,7 +38,11 @@ public sealed class GameWorld
     public GameWorld(CurrencyMarket? market = null, int startHour = WorldThresholds.DefaultStartHour)
     {
         Market = market ?? new CurrencyMarket();
-        Interactions = new InteractionResolver(Relationships, Characters);
+        Interactions = new InteractionResolver(
+            Relationships,
+            (from, to, topic) => Characters.TryGet(from, out var a) && Characters.TryGet(to, out var b)
+                ? InterestCalculator.ConversationModifier(a, b, topic)
+                : 0f);
         WantsAndFears.AttachTo(Interactions, Relationships);
         _economyTick = new EconomyTickSystem(_bills);
         _paid = new PaidInteractionResolver(Interactions);

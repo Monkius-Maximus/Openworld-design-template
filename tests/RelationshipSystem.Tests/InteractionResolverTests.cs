@@ -287,7 +287,11 @@ public class InteractionResolverTests
         var registry = new CharacterRegistry();
         registry.Add(Character("alice", 10));
         registry.Add(Character("bob", 10));
-        var resolver = new InteractionResolver(matrix, registry);
+        var resolver = new InteractionResolver(
+            matrix,
+            (from, to, topic) => registry.TryGet(from, out var a) && registry.TryGet(to, out var b)
+                ? InterestCalculator.ConversationModifier(a, b, topic)
+                : 0f);
 
         resolver.Perform("alice", "bob", InteractionLibrary.Talk, InterestTopics.Sports);
 
@@ -302,7 +306,11 @@ public class InteractionResolverTests
         var registry = new CharacterRegistry();
         registry.Add(Character("alice", 0));
         registry.Add(Character("bob", 0));
-        var resolver = new InteractionResolver(matrix, registry);
+        var resolver = new InteractionResolver(
+            matrix,
+            (from, to, topic) => registry.TryGet(from, out var a) && registry.TryGet(to, out var b)
+                ? InterestCalculator.ConversationModifier(a, b, topic)
+                : 0f);
 
         resolver.Perform("alice", "bob", InteractionLibrary.Talk, InterestTopics.Sports);
 

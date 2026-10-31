@@ -11,7 +11,7 @@ public delegate void InteractionResultHandler(string from, string to, Interactio
 public sealed class InteractionResolver
 {
     private readonly RelationshipMatrix _matrix;
-    private readonly CharacterRegistry? _characters;
+    private readonly Func<string, string, string, float>? _topicBonus;
 
     public event RelationshipEventHandler? FriendshipFormed;
     public event RelationshipEventHandler? FriendshipBroken;
@@ -21,14 +21,17 @@ public sealed class InteractionResolver
     public event InteractionResultHandler? InteractionPerformed;
 
     /// <summary>
-    /// <paramref name="characters"/> é opcional: quando fornecido, conversas com
-    /// tópico são moduladas pelos interesses dos envolvidos. Sem ele, tópicos são
-    /// ignorados silenciosamente.
+    /// <paramref name="topicBonus"/> é opcional: recebe <c>(fromId, toId, topic)</c> e
+    /// devolve o bônus de Daily de uma conversa sobre aquele tópico. Quem constrói o
+    /// resolver decide de onde vem o bônus (por exemplo, dos interesses dos
+    /// personagens). Quando é null, tópicos são ignorados.
     /// </summary>
-    public InteractionResolver(RelationshipMatrix matrix, CharacterRegistry? characters = null)
+    public InteractionResolver(
+        RelationshipMatrix matrix,
+        Func<string, string, string, float>? topicBonus = null)
     {
         _matrix = matrix ?? throw new ArgumentNullException(nameof(matrix));
-        _characters = characters;
+        _topicBonus = topicBonus;
     }
 
     /// <summary>
@@ -53,8 +56,7 @@ public sealed class InteractionResolver
         var effect = accepted ? def.OnAccept : def.OnReject;
 
         // Aplica deltas à trilha platônica. Um tópico de conversa soma (ou
-        // subtrai) ao Daily conforme o interesse mútuo — só quando há registro
-        // de personagens disponível.
+        // subtrai) ao Daily — só quando um bônus de tópico foi injetado.
         rel.Value.ApplyDaily(effect.DailyDelta + TopicBonus(from, to, topic));
         rel.Value.ApplyLifetime(effect.LifetimeDelta);
 
@@ -90,15 +92,9 @@ public sealed class InteractionResolver
     }
 
     private float TopicBonus(string from, string to, string? topic)
-    {
-        if (string.IsNullOrWhiteSpace(topic) || _characters is null)
-            return 0f;
-
-        if (_characters.TryGet(from, out var a) && _characters.TryGet(to, out var b))
-            return InterestCalculator.ConversationModifier(a, b, topic);
-
-        return 0f;
-    }
+        => string.IsNullOrWhiteSpace(topic) || _topicBonus is null
+            ? 0f
+            : _topicBonus(from, to, topic);
 
     private void UpdateFlags(Relationship rel, InteractionDefinition def)
     {
