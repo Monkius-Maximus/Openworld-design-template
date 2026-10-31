@@ -53,7 +53,7 @@ public partial class InteractionMenu : PanelContainer
         {
             var captured = def;
             var button = new Button { Text = captured.DisplayName };
-            button.Pressed += () => RunSocial(captured);
+            button.Connect(BaseButton.SignalName.Pressed, Callable.From(() => RunSocial(captured)));
             _buttonBox.AddChild(button);
             _socialButtons.Add((button, captured));
         }
@@ -62,7 +62,7 @@ public partial class InteractionMenu : PanelContainer
         {
             Text = $"Dar Presente ({MarketRules.BaseCurrencySymbol}{SocialCosts.GiftCost})",
         };
-        _giftButton.Pressed += RunGift;
+        _giftButton.Connect(BaseButton.SignalName.Pressed, Callable.From(RunGift));
         _buttonBox.AddChild(_giftButton);
 
         _resultLabel = new Label
@@ -73,7 +73,7 @@ public partial class InteractionMenu : PanelContainer
         layout.AddChild(_resultLabel);
 
         var close = new Button { Text = "Fechar (Esc)" };
-        close.Pressed += Close;
+        close.Connect(BaseButton.SignalName.Pressed, Callable.From(Close));
         layout.AddChild(close);
 
         Visible = false;

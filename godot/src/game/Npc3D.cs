@@ -30,8 +30,8 @@ public partial class Npc3D : StaticBody3D
             throw new InvalidOperationException($"{nameof(Npc3D)} '{Name}' requires {nameof(ProximityArea)}.");
 
         AddToGroup(GroupName);
-        ProximityArea.BodyEntered += OnBodyEntered;
-        ProximityArea.BodyExited += OnBodyExited;
+        ProximityArea.Connect(Area3D.SignalName.BodyEntered, Callable.From<Node3D>(OnBodyEntered));
+        ProximityArea.Connect(Area3D.SignalName.BodyExited, Callable.From<Node3D>(OnBodyExited));
     }
 
     private void OnBodyEntered(Node3D body)

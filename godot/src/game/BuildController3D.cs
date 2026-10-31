@@ -65,7 +65,7 @@ public partial class BuildController3D : Node
         {
             BuildItem captured = item;
             var button = new Button { Text = captured.DisplayName };
-            button.Pressed += () => SelectItem(captured);
+            button.Connect(BaseButton.SignalName.Pressed, Callable.From(() => SelectItem(captured)));
             Palette.AddChild(button);
         }
     }
